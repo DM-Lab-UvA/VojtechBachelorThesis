@@ -77,6 +77,26 @@ def generate_coocurrance_matrix(MCM_partitions, n):
     return matrix
 
 
+def count_component_size(MCM_partitions, n):
+    count_li = []
+
+    for array in MCM_partitions:
+        if n <= 64:
+            component = bin(array[1])[2:].zfill(n)
+        else:
+            comp1 = bin(array[1])[2:].zfill(64)
+            comp2 = bin(array[2])[2:].zfill(n-64)
+            component = comp1 + comp2
+
+        count = 0
+        for i in range(n):
+            if (component[i] == "1"):
+                count += 1
+
+        count_li.append(count)
+
+    return np.array(count_li)
+
 # A function to plot a heatmap based on a co-occurance frequency matrix
 def plot_heatmap(data, neuron_series, spikeData, save_dir, filename, trial_comb):
     # Plot the resulting superimposition of the matrices
@@ -144,6 +164,7 @@ n_list = []
 r_list = []
 session_list = []
 trial_comb_list = []
+comp_size_list = []
 
 
 # # Create an MCM for all trials in a certain stimulus combination before change
@@ -171,7 +192,7 @@ trial_comb_list = []
 
 #             # finding the best MCM
 #             data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
-#             MCM_best = mod.MCM_GreedySearch_AND_printInfo(data, n, True)
+#             MCM_best = mod.MCM_GreedySearch(data, n, False)
 
 #             # Calculate the Log evidence of the MCM and add it to the list
 #             LogE = mod.LogE_MCM(data, MCM_best, MCM_best.r)
@@ -187,7 +208,9 @@ trial_comb_list = []
 #             r_list.append(MCM_best.r)
 #             session_list.append(ses_ID)
 #             trial_comb_list.append([visGroup, audioGroup])
+#             comp_size_list.append(count_component_size(MCM_best.array, n))
 
+#             print(f"{visGroup} and {audioGroup} combination finished")
 
 
 # data_dict = {
@@ -197,7 +220,8 @@ trial_comb_list = []
 #     "No. of variables": n_list,
 #     "r": r_list,
 #     "Log evidence": logE_list,
-#     "Log likelihood": logL_list
+#     "Log likelihood": logL_list,
+#     "Component sizes": comp_size_list
 # }
 
 # beforeChMCM_data = pd.DataFrame(data_dict)
@@ -208,50 +232,60 @@ trial_comb_list = []
 
 
 beforeChMCM_data = pd.read_pickle("/Users/vojtamazur/Documents/Capstone_code/MCM_results/before_change_10ms.pkl")
+# for _, row in beforeChMCM_data.iterrows():
+#     # get the session neurons and spike data
+#     ses_ID = row["Session_ID"]
+#     ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
+#     neuron_series = ses_neurons["cell_ID"]
+
+#     save_dir = f"/Users/vojtamazur/Documents/Capstone_code/MCM_results/plots_ses_{ses_ID}"
+#     visGroup, audioGroup = row["Stimulus combination"]
+
+#     neuron_matrix = generate_coocurrance_matrix(row["Partition array"], row["No. of variables"])
+#     plot_heatmap(
+#         neuron_matrix,
+#         neuron_series,
+#         ses_neurons,
+#         save_dir,
+#         f"stim_comb_{visGroup}-{audioGroup}_co-occurence",
+#         f"A visual representation of the co-occurence matrix for\nthe stimulus combination of {visGroup} degree line and {audioGroup} Hz frequency\nin session {ses_ID}"
+#         )
+
+# for index, session in sessionData.iterrows():
+#     ses_ID = session["session_ID"]
+#     ses_MCMs = beforeChMCM_data[beforeChMCM_data["Session_ID"] == ses_ID]
+
+#     ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
+#     neuron_series = ses_neurons["cell_ID"]
+#     n = len(neuron_series)
+
+#     superimposed_matrix = np.zeros((n, n))
+
+#     for _, row in ses_MCMs.iterrows():
+#         neuron_matrix = generate_coocurrance_matrix(row["Partition array"], row["No. of variables"])
+#         superimposed_matrix += neuron_matrix
+
+#     save_dir = f"/Users/vojtamazur/Documents/Capstone_code/MCM_results/plots_superimposed_10ms"
+
+#     plot_heatmap(
+#         superimposed_matrix,
+#         neuron_series,
+#         ses_neurons,
+#         save_dir,
+#         f"session_{index+1}-{ses_ID}_co-occurence_heatmap",
+#         f"for all stimulus combinations in session {index+1} ({ses_ID})\nfor the duration before the stimulus change"
+#         )
+
+
 for _, row in beforeChMCM_data.iterrows():
-    # get the session neurons and spike data
-    ses_ID = row["Session_ID"]
-    ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
-    neuron_series = ses_neurons["cell_ID"]
+    comp_sizes = row["Component sizes"]
 
-    save_dir = f"/Users/vojtamazur/Documents/Capstone_code/MCM_results/plots_ses_{ses_ID}"
-    visGroup, audioGroup = row["Stimulus combination"]
-
-    neuron_matrix = generate_coocurrance_matrix(row["Partition array"], row["No. of variables"])
-    plot_heatmap(
-        neuron_matrix,
-        neuron_series,
-        ses_neurons,
-        save_dir,
-        f"stim_comb_{visGroup}-{audioGroup}_co-occurence",
-        f"A visual representation of the co-occurence matrix for\nthe stimulus combination of {visGroup} degree line and {audioGroup} Hz frequency\nin session {ses_ID}"
-        )
-
-for index, session in sessionData.iterrows():
-    ses_ID = session["session_ID"]
-    ses_MCMs = beforeChMCM_data[beforeChMCM_data["Session_ID"] == ses_ID]
-
-    ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
-    neuron_series = ses_neurons["cell_ID"]
-    n = len(neuron_series)
-
-    superimposed_matrix = np.zeros((n, n))
-
-    for _, row in ses_MCMs.iterrows():
-        neuron_matrix = generate_coocurrance_matrix(row["Partition array"], row["No. of variables"])
-        superimposed_matrix += neuron_matrix
-
-    save_dir = f"/Users/vojtamazur/Documents/Capstone_code/MCM_results/plots_superimposed_10ms"
-
-    plot_heatmap(
-        superimposed_matrix,
-        neuron_series,
-        ses_neurons,
-        save_dir,
-        f"session_{index+1}-{ses_ID}_co-occurence_heatmap",
-        f"for all stimulus combinations in session {index+1} ({ses_ID})\nfor the duration before the stimulus change"
-        )
-
+    print(row["Session_ID"])
+    print(row["Stimulus combination"])
+    print(np.mean(comp_sizes))
+    print(np.max(comp_sizes))
+    print(np.min(comp_sizes))
+    print("\n")
 
 
 ########################################################################################################################################################################
