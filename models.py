@@ -290,58 +290,61 @@ for _, row in beforeChMCM_data.iterrows():
 
 ########################################################################################################################################################################
 
-# # Create and plot a superimposed co-occurrence matrix
-# # for every combination of stimuli before change in each session
-# for index, session in sessionData.iterrows():
-#     # get the trials from this session
-#     ses_ID = session["session_ID"]
-#     ses_trials = trialBinData[trialBinData["session_ID"] == ses_ID]
+# Create and plot a superimposed co-occurrence matrix
+# for every combination of stimuli before change in each session
+for index, session in sessionData.iterrows():
+    # get the trials from this session
+    ses_ID = session["session_ID"]
+    ses_trials = trialBinData[trialBinData["session_ID"] == ses_ID]
 
-#     # get the neurons from the session and their number
-#     ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
-#     neuron_series = ses_neurons["cell_ID"]
-#     n = len(neuron_series)
+    # get the neurons from the session and their number
+    ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
+    neuron_series = ses_neurons["cell_ID"]
+    n = len(neuron_series)
 
-#     for visGroup in ses_trials.visGroupPreChange.unique():
-#         for audioGroup in ses_trials.audioGroupPreChange.unique():
-#             comb_trials = ses_trials[
-#                 (ses_trials["visGroupPreChange"] == visGroup) & (ses_trials["audioGroupPreChange"] == audioGroup)
-#             ]
-#             superimposed_matrix = np.zeros((n, n))
+    for visGroup in ses_trials.visGroupPreChange.unique():
+        for audioGroup in ses_trials.audioGroupPreChange.unique():
+            comb_trials = ses_trials[
+                (ses_trials["visGroupPreChange"] == visGroup) & (ses_trials["audioGroupPreChange"] == audioGroup)
+            ]
+            superimposed_matrix = np.zeros((n, n))
 
-#             # Iterating through every trial and generating the best
-#             # MCM for each trial
-#             for _, trial in comb_trials.iterrows():
+            # Iterating through every trial and generating the best
+            # MCM for each trial
+            for _, trial in comb_trials.iterrows():
 
-#                 # Converting the data into a format usable by the MCM
-#                 filename = f"session{ses_ID}_trial{trial['trialNum']}"
-#                 create_input_file(trial, 99, 299, filename, data_dir)
+                # Converting the data into a format usable by the MCM
+                filename = f"session{ses_ID}_trial{trial['trialNum']}"
+                create_input_file(trial, 99, 299, filename, data_dir)
 
-#                 data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
+                data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
 
-#                 # Creating the MCM
-#                 MCM_best = mod.MCM_GreedySearch(data, n, False)
+                # Creating the MCM
+                MCM_best = mod.MCM_GreedySearch(data, n, False)
 
-#                 # Calculate the Log evidence of the MCM and add it to the list
-#                 LogE = mod.LogE_MCM(data, MCM_best, MCM_best.r)
-#                 logE_list.append(LogE)
+                # Calculate the Log evidence of the MCM and add it to the list
+                LogE = mod.LogE_MCM(data, MCM_best, MCM_best.r)
+                logE_list.append(LogE)
 
-#                 # Calculate the log likelihood of the MCM and add it to the list
-#                 LogL = mod.LogL_MCM(data, MCM_best, MCM_best.r)
-#                 logL_list.append(LogL)
+                # Calculate the log likelihood of the MCM and add it to the list
+                LogL = mod.LogL_MCM(data, MCM_best, MCM_best.r)
+                logL_list.append(LogL)
 
-#                 # Generate the co-ocurrence matrix for the model
-#                 co_matrix = generate_coocurrance_matrix(MCM_best.array, n)
+                # Generate the co-ocurrence matrix for the model
+                co_matrix = generate_coocurrance_matrix(MCM_best.array, n)
 
-#                 # print(np.array2string(co_matrix, threshold=np.inf))
-#                 superimposed_matrix += co_matrix
+                # print(np.array2string(co_matrix, threshold=np.inf))
+                superimposed_matrix += co_matrix
 
-#             plot_heatmap(
-#                 superimposed_matrix,
-#                 neuron_series,
-#                 ses_neurons,
-#                 f"{heatmap_dir}/session_{index+1}-{ses_ID}",
-#                 f"stim{visGroup}_{audioGroup}",
-#                 f"session {index+1} trials, stimulus combination before change:\nvisual {visGroup} degrees, auditory {audioGroup}"
-#             )
+            for i in range(n):
+                superimposed_matrix[i][i] = 0
+
+            plot_heatmap(
+                superimposed_matrix,
+                neuron_series,
+                ses_neurons,
+                f"{heatmap_dir}/session_{index+1}-{ses_ID}",
+                f"stim{visGroup}_{audioGroup}",
+                f"session {index+1} trials, stimulus combination before change:\nvisual {visGroup} degrees, auditory {audioGroup}"
+            )
 
