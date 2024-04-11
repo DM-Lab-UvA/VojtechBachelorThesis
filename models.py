@@ -77,7 +77,7 @@ def generate_coocurrance_matrix(MCM_partitions, n):
     return matrix
 
 
-def count_component_size(MCM_partitions, n):
+def count_component_size(MCM_partitions, n, exclude_singles):
     count_li = []
 
     for array in MCM_partitions:
@@ -92,6 +92,9 @@ def count_component_size(MCM_partitions, n):
         for i in range(n):
             if (component[i] == "1"):
                 count += 1
+
+        if (exclude_singles & (count == 1)):
+            continue
 
         count_li.append(count)
 
@@ -138,8 +141,9 @@ def plot_heatmap(data, neuron_series, spikeData, save_dir, filename, trial_comb)
 
 
 # Getting the saved binarized data
+time_bin = "10"
 save_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
-spike_file = "binSpikeTrials_10ms.pkl"
+spike_file = f"binSpikeTrials_{time_bin}ms.pkl"
 trialBinData = pd.read_pickle(f"{save_dir}/{spike_file}")
 
 
@@ -155,7 +159,7 @@ spikeData = utils.exclude_neurons(spikeData, sessionData, min_fire, quality)
 
 # Setting up some variables
 data_dir = "./binData"
-heatmap_dir = "/Users/vojtamazur/Documents/Capstone_code/superimposed_matrices"
+heatmap_dir = f"/Users/vojtamazur/Documents/Capstone_code/superimposed_matrices/{time_bin}ms"
 
 logE_list = []
 logL_list = []
@@ -226,29 +230,33 @@ comp_size_list = []
 
 # beforeChMCM_data = pd.DataFrame(data_dict)
 # save_dir = "/Users/vojtamazur/Documents/Capstone_code/MCM_results"
-# beforeChMCM_data.to_pickle(f"{save_dir}/before_change_10ms.pkl")
+# beforeChMCM_data.to_pickle(f"{save_dir}/before_change_{time_bin}ms.pkl")
 
 ########################################################################################################################################################################
 
 
-beforeChMCM_data = pd.read_pickle("/Users/vojtamazur/Documents/Capstone_code/MCM_results/before_change_10ms.pkl")
+# beforeChMCM_data = pd.read_pickle(f"/Users/vojtamazur/Documents/Capstone_code/MCM_results/before_change_{time_bin}ms.pkl")
 # for _, row in beforeChMCM_data.iterrows():
 #     # get the session neurons and spike data
 #     ses_ID = row["Session_ID"]
 #     ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
 #     neuron_series = ses_neurons["cell_ID"]
 
-#     save_dir = f"/Users/vojtamazur/Documents/Capstone_code/MCM_results/plots_ses_{ses_ID}"
+#     save_dir = f"/Users/vojtamazur/Documents/Capstone_code/MCM_results/{time_bin}ms/plots_ses_{ses_ID}"
 #     visGroup, audioGroup = row["Stimulus combination"]
+#     n = row["No. of variables"]
 
-#     neuron_matrix = generate_coocurrance_matrix(row["Partition array"], row["No. of variables"])
+#     neuron_matrix = generate_coocurrance_matrix(row["Partition array"], n)
+#     for i in range(n):
+#         neuron_matrix[i][i] = 0
+
 #     plot_heatmap(
 #         neuron_matrix,
 #         neuron_series,
 #         ses_neurons,
 #         save_dir,
 #         f"stim_comb_{visGroup}-{audioGroup}_co-occurence",
-#         f"A visual representation of the co-occurence matrix for\nthe stimulus combination of {visGroup} degree line and {audioGroup} Hz frequency\nin session {ses_ID}"
+#         f"A visual representation of the co-occurence matrix for\nthe stimulus combination of {visGroup} degree line and {audioGroup} Hz frequency\nin session {ses_ID} ({time_bin}ms time bins)"
 #         )
 
 # for index, session in sessionData.iterrows():
@@ -265,7 +273,10 @@ beforeChMCM_data = pd.read_pickle("/Users/vojtamazur/Documents/Capstone_code/MCM
 #         neuron_matrix = generate_coocurrance_matrix(row["Partition array"], row["No. of variables"])
 #         superimposed_matrix += neuron_matrix
 
-#     save_dir = f"/Users/vojtamazur/Documents/Capstone_code/MCM_results/plots_superimposed_10ms"
+#     for i in range(n):
+#         superimposed_matrix[i][i] = 0
+
+#     save_dir = f"/Users/vojtamazur/Documents/Capstone_code/MCM_results/plots_superimposed_{time_bin}ms"
 
 #     plot_heatmap(
 #         superimposed_matrix,
@@ -273,25 +284,89 @@ beforeChMCM_data = pd.read_pickle("/Users/vojtamazur/Documents/Capstone_code/MCM
 #         ses_neurons,
 #         save_dir,
 #         f"session_{index+1}-{ses_ID}_co-occurence_heatmap",
-#         f"for all stimulus combinations in session {index+1} ({ses_ID})\nfor the duration before the stimulus change"
+#         f"for all stimulus combinations in session {index+1} ({ses_ID})\nfor the duration before the stimulus change ({time_bin}ms time bins)"
 #         )
 
 
-for _, row in beforeChMCM_data.iterrows():
-    comp_sizes = row["Component sizes"]
+# for _, row in beforeChMCM_data.iterrows():
+#     sizes_full = row["Component sizes"]
+#     comp_sizes = count_component_size(row["Partition array"], row["No. of variables"], True)
 
-    print(row["Session_ID"])
-    print(row["Stimulus combination"])
-    print(np.mean(comp_sizes))
-    print(np.max(comp_sizes))
-    print(np.min(comp_sizes))
-    print("\n")
+#     print(row["Session_ID"])
+#     print(row["Stimulus combination"])
+#     print(np.mean(comp_sizes))
+#     # print(len(comp_sizes)/len(sizes_full))
+#     # print(np.max(comp_sizes))
+#     # print(np.min(comp_sizes))
+#     print("\n")
 
 
 ########################################################################################################################################################################
 
-# Create and plot a superimposed co-occurrence matrix
-# for every combination of stimuli before change in each session
+# # Create and plot a superimposed co-occurrence matrix
+# # for every combination of stimuli before change in each session
+# for index, session in sessionData.iterrows():
+#     # get the trials from this session
+#     ses_ID = session["session_ID"]
+#     ses_trials = trialBinData[trialBinData["session_ID"] == ses_ID]
+
+#     # get the neurons from the session and their number
+#     ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
+#     neuron_series = ses_neurons["cell_ID"]
+#     n = len(neuron_series)
+
+#     for visGroup in ses_trials.visGroupPreChange.unique():
+#         for audioGroup in ses_trials.audioGroupPreChange.unique():
+#             comb_trials = ses_trials[
+#                 (ses_trials["visGroupPreChange"] == visGroup) & (ses_trials["audioGroupPreChange"] == audioGroup)
+#             ]
+#             superimposed_matrix = np.zeros((n, n))
+
+#             # Iterating through every trial and generating the best
+#             # MCM for each trial
+#             for _, trial in comb_trials.iterrows():
+
+#                 # Converting the data into a format usable by the MCM
+#                 filename = f"session{ses_ID}_trial{trial['trialNum']}"
+#                 create_input_file(trial, 99, 299, filename, data_dir)
+
+#                 data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
+
+#                 # Creating the MCM
+#                 MCM_best = mod.MCM_GreedySearch(data, n, False)
+
+#                 # Calculate the Log evidence of the MCM and add it to the list
+#                 LogE = mod.LogE_MCM(data, MCM_best, MCM_best.r)
+#                 logE_list.append(LogE)
+
+#                 # Calculate the log likelihood of the MCM and add it to the list
+#                 LogL = mod.LogL_MCM(data, MCM_best, MCM_best.r)
+#                 logL_list.append(LogL)
+
+#                 # Generate the co-ocurrence matrix for the model
+#                 co_matrix = generate_coocurrance_matrix(MCM_best.array, n)
+
+#                 # print(np.array2string(co_matrix, threshold=np.inf))
+#                 superimposed_matrix += co_matrix
+
+#             for i in range(n):
+#                 superimposed_matrix[i][i] = 0
+
+#             plot_heatmap(
+#                 superimposed_matrix,
+#                 neuron_series,
+#                 ses_neurons,
+#                 f"{heatmap_dir}/session_{index+1}-{ses_ID}",
+#                 f"stim{visGroup}_{audioGroup}",
+#                 f"session {index+1} trials ({time_bin}ms time bin), stimulus combination before change:\nvisual {visGroup} degrees, auditory {audioGroup} ({len(comb_trials)} trials)"
+#             )
+
+
+########################################################################################################################################################################
+
+plt_save_dir = f"/Users/vojtamazur/Documents/Capstone_code/comp_sizes/{time_bin}ms"
+
+# Calculate how the average component size increases with the number of trials included
 for index, session in sessionData.iterrows():
     # get the trials from this session
     ses_ID = session["session_ID"]
@@ -302,49 +377,42 @@ for index, session in sessionData.iterrows():
     neuron_series = ses_neurons["cell_ID"]
     n = len(neuron_series)
 
+    # Iterating through each stimulus combination for valid comparisons
     for visGroup in ses_trials.visGroupPreChange.unique():
         for audioGroup in ses_trials.audioGroupPreChange.unique():
+            # Get the trials in this stimulus comnbination
             comb_trials = ses_trials[
                 (ses_trials["visGroupPreChange"] == visGroup) & (ses_trials["audioGroupPreChange"] == audioGroup)
             ]
-            superimposed_matrix = np.zeros((n, n))
 
-            # Iterating through every trial and generating the best
-            # MCM for each trial
-            for _, trial in comb_trials.iterrows():
+            comp_size_averages = []
+            trial_num = len(comb_trials)
+
+            # Loop through each number of possible trials and calculate the average component size
+            for trial_n in range(1, trial_num):
+                MCM_trials = comb_trials.iloc[0:trial_n, :]
 
                 # Converting the data into a format usable by the MCM
-                filename = f"session{ses_ID}_trial{trial['trialNum']}"
-                create_input_file(trial, 99, 299, filename, data_dir)
-
+                filename = f"session{ses_ID}_trial{trial_n}"
+                create_input_file(MCM_trials, 99, 299, filename, data_dir)
                 data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
 
                 # Creating the MCM
                 MCM_best = mod.MCM_GreedySearch(data, n, False)
 
-                # Calculate the Log evidence of the MCM and add it to the list
-                LogE = mod.LogE_MCM(data, MCM_best, MCM_best.r)
-                logE_list.append(LogE)
+                # Calculate the average component size
+                avg_comp_size_full = np.mean(count_component_size(MCM_best.array, n, False))
+                avg_comp_size_excl = np.mean(count_component_size(MCM_best.array, n, True))
+                comp_size_averages.append((avg_comp_size_full, avg_comp_size_excl))
 
-                # Calculate the log likelihood of the MCM and add it to the list
-                LogL = mod.LogL_MCM(data, MCM_best, MCM_best.r)
-                logL_list.append(LogL)
+            if not os.path.exists(plt_save_dir):
+                os.makedirs(plt_save_dir)
 
-                # Generate the co-ocurrence matrix for the model
-                co_matrix = generate_coocurrance_matrix(MCM_best.array, n)
+            plt.figure(figsize=(6, 6))
+            plt.scatter(range(1, trial_num), [x[0] for x in comp_size_averages])
+            plt.title(f"Mean component size of the MCM plotted against the\nnumber of trials used in training\nStimulus combination: visual {visGroup}°, auditory {audioGroup}Hz")
+            plt.xlabel('No. of trials used for the MCM')
+            plt.ylabel('Mean component size')
+            plt.savefig(f"{plt_save_dir}/vis{visGroup}_aud{audioGroup}_comp_sizes_plot.png")
 
-                # print(np.array2string(co_matrix, threshold=np.inf))
-                superimposed_matrix += co_matrix
-
-            for i in range(n):
-                superimposed_matrix[i][i] = 0
-
-            plot_heatmap(
-                superimposed_matrix,
-                neuron_series,
-                ses_neurons,
-                f"{heatmap_dir}/session_{index+1}-{ses_ID}",
-                f"stim{visGroup}_{audioGroup}",
-                f"session {index+1} trials, stimulus combination before change:\nvisual {visGroup} degrees, auditory {audioGroup}"
-            )
 

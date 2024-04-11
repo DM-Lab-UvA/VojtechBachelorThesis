@@ -75,7 +75,7 @@ fTrialData = trialData.dropna(how="any", subset = ["trialStart", "trialEnd", "st
 # # #######################################################################################################################################################################
 
 # # Binarizing intervals and saving them as pickle files
-# interval = 10000
+interval = 10000
 # spike_file = "3s-1sTrialSpikes.pkl"
 # save_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
 
@@ -87,12 +87,12 @@ fTrialData = trialData.dropna(how="any", subset = ["trialStart", "trialEnd", "st
 
 # ########################################################################################################################################################################
 
-# save_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
-# plot_dir = "/Users/vojtamazur/Documents/Capstone_code/raster_plots/"
-# spike_file = "binSpikeTrials_10ms.pkl"
+save_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
+plot_dir = "/Users/vojtamazur/Documents/Capstone_code/raster_plots/"
+spike_file = "binSpikeTrials_10ms.pkl"
 
-# # Getting the saved binarized data
-# trialBinData = pd.read_pickle(f"{save_dir}/{spike_file}")
+# Getting the saved binarized data
+trialBinData = pd.read_pickle(f"{save_dir}/{spike_file}")
 
 # # Plotting superimposed Raster plots for each session
 # for index, session in sessionData.iterrows():
@@ -122,7 +122,7 @@ fTrialData = trialData.dropna(how="any", subset = ["trialStart", "trialEnd", "st
 #                 for audioGroupPost in ses_trials.audioGroupPostChange.unique():
 #                     comb_trials = ses_trials[(ses_trials["visGroupPreChange"] == visGroupPre) & (ses_trials["audioGroupPreChange"] == audioGroupPre) & (ses_trials["visGroupPostChange"] == visGroupPost) & (ses_trials["audioGroupPostChange"] == audioGroupPost)]
 #                     plt_save_dir = f"{plot_dir}/Session_{index+1}-{ses_ID}_trial_groups"
-#                     rplt.raster_plot_superimposed(comb_trials, spikeData, ses_ID, interval, f"Pre visual-{visGroupPre} audio-{audioGroupPost}_Post visual-{visGroupPost} audio-{visGroupPost}", plt_save_dir)
+#                     rplt.raster_plot_superimposed(comb_trials, spikeData, ses_ID, interval, f"Pre visual-{visGroupPre} audio-{audioGroupPost}_Post visual-{visGroupPost} audio-{audioGroupPost}", plt_save_dir)
 
 
 # # Plotting each trial in session 3
@@ -134,14 +134,29 @@ fTrialData = trialData.dropna(how="any", subset = ["trialStart", "trialEnd", "st
 #     rplt.raster_plot_individual(trial, spikeData, ses_ID, interval, plt_save_dir)
 
 
+# Plotting the Raster plots to be used in the Capstone text
+visGroup, audioGroup = ["225-230", "13000-13020"]
+comb_trials = trialBinData[(trialBinData["visGroupPreChange"] == visGroup) & (trialBinData["audioGroupPreChange"] == audioGroup)]
+trial1 = comb_trials.iloc[0, :]
+
+rplt.raster_plot_superimposed(
+    comb_trials,
+    spikeData,
+    trial1["session_ID"],
+    interval,
+    f"visual {visGroup} audio {audioGroup} text plot", f"{plot_dir}/main_text",
+    title=False)
+
+
+
 ########################################################################################################################################################################
 
-interval = 10000
-spike_file = "3s-1sTrialSpikes.pkl"
-save_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
+# interval = 10000
+# spike_file = "3s-1sTrialSpikes.pkl"
+# save_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
 
-trialSpikesData = pd.read_pickle(f"{save_dir}/{spike_file}")
-trialBinCountData = utils.count_bin_spikes(trialSpikesData, interval)
+# trialSpikesData = pd.read_pickle(f"{save_dir}/{spike_file}")
+# trialBinCountData = utils.count_bin_spikes(trialSpikesData, interval)
 
-filename = f"binSpikeCounts_{int(interval/1000)}ms"
-trialBinCountData.to_pickle(f'{save_dir}/{filename}.pkl')
+# filename = f"binSpikeCounts_{int(interval/1000)}ms"
+# trialBinCountData.to_pickle(f'{save_dir}/{filename}.pkl')

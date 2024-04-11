@@ -300,7 +300,7 @@ def binarize_neurons_in_trial(trialData, interval):
     # Iterate through each trial and get its start and end time
     # (or 1s after stim. change if the trial was longer)
     for index, trial in trialData.iterrows():
-        start_time  = trial["stimChange"] - 3000000
+        start_time  = trial["stimChange"] - 2000000
         if trial["shortResponse"]:
             end_time = trial["trialEnd"]
         else:
@@ -342,7 +342,7 @@ def count_bin_spikes(trialData, interval):
     # Iterate through each trial and get its start and end time
     # (or 1s after stim. change if the trial was longer)
     for index, trial in trialData.iterrows():
-        start_time  = trial["stimChange"] - 3000000
+        start_time  = trial["stimChange"] - 2000000
         if trial["shortResponse"]:
             end_time = trial["trialEnd"]
         else:
@@ -368,7 +368,6 @@ def count_bin_spikes(trialData, interval):
             for spike in bins:
                 count_series[spike-1] += 1
 
-            print(any(count_series == 4))
             bin_spike_counts[neuron] = count_series
 
         trialSpikeCounts.append(bin_spike_counts)

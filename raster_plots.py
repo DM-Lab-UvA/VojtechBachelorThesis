@@ -21,14 +21,14 @@ def trim_spikes(trial_df):
     # Step 2: Trim arrays in each dictionary to the minimum length
     trimmed_spikes = []
     for trial_dict in trial_spikes:
-        trimmed_dict = {neuron: np.array(firing_timestamps)[:min_length]
+        trimmed_dict = {neuron: np.array(firing_timestamps)[0:min_length]
                         for neuron, firing_timestamps in trial_dict.items()}
         trimmed_spikes.append(trimmed_dict)
 
     return pd.Series(trimmed_spikes), min_length
 
 
-def raster_plot_superimposed(trial_df, spike_df, session_ID, interval, trial_selection, path):
+def raster_plot_superimposed(trial_df, spike_df, session_ID, interval, trial_selection, path, title=True):
     # Replace the original 'trial_spikes' with the trimmed version
     # which trims all trials to the length of the shortest trial
     trial_spikes, min_length = trim_spikes(trial_df)
@@ -54,7 +54,7 @@ def raster_plot_superimposed(trial_df, spike_df, session_ID, interval, trial_sel
         total_spikes += neuron_arr
 
     # Set up the plot
-    plt.figure(figsize=(16, 6))
+    plt.figure(figsize=(12, 6))
 
     # Generate the plot of superimposed spiking data
     plt.imshow(total_spikes, aspect='auto', cmap='viridis', interpolation='nearest')
@@ -66,8 +66,13 @@ def raster_plot_superimposed(trial_df, spike_df, session_ID, interval, trial_sel
     plt.xlabel('Time since start of trial (ms)')
     plt.ylabel('Neuron')
     plt.xticks(ticks=range(0, total_spikes.shape[1], 50), labels=range(0, end_time, 500))
-    plt.yticks(ticks=range(total_spikes.shape[0]), labels=neuron_series)
-    plt.title(f'Superimposed Raster Plot: p{trial_selection},\n {interval/1000}ms time bins ({len(trial_spikes)} trials)', loc='left')
+    plt.yticks(ticks=range(total_spikes.shape[0]), labels=neuron_series, fontsize=8)
+
+    # Only include title if the boolean is True
+    if title:
+        plt.title(f'Superimposed Raster Plot: {trial_selection},\n {interval/1000}ms time bins ({len(trial_spikes)} trials)', loc='left')
+    else:
+        plt.title('A superimposed Raster plot of binarized neuron firings', fontsize=16)
 
     # Color the y-axis labels based on which brain area they belong to
     tick_labels = plt.gca().get_yticklabels()
@@ -84,14 +89,14 @@ def raster_plot_superimposed(trial_df, spike_df, session_ID, interval, trial_sel
             tick_label.set_color(label_colors[2])
 
     # Add an additional legend to explain the different brain areas
-    area_labels = ["V1", "CG1", "PPC"]
+    area_labels = ["V1", "AC1", "PPC"]
     legend_patches = [mpatches.Patch(color=color, label=label) for color, label in zip(label_colors, area_labels)]
     plt.legend(handles=legend_patches, bbox_to_anchor=(1.05, 1), loc='best', title="Brain Area")
 
     # Add a label for the stimulus change:
-    stim_change = 3000000/interval
+    stim_change = 2000000/interval
     plt.axvline(x=stim_change, color='r', linestyle='--', linewidth=1)
-    plt.text(stim_change, 3, 'Stimulus\n Change', rotation=90, color='r', verticalalignment='top')
+    plt.text(stim_change, len(tick_labels)-3, 'Stimulus\n Change', rotation=90, color='r', verticalalignment='bottom')
 
     # Check if the save directory exists, and if not, create it
     if not os.path.exists(path):
@@ -144,7 +149,7 @@ def raster_plot_individual(trial, spike_df, session_ID, interval, path):
     plt.legend(handles=legend_patches, bbox_to_anchor=(1.05, 1), loc='best', title="Brain Area")
 
     # Add a label for the stimulus change:
-    stim_change = 3000000/interval
+    stim_change = 2000000/interval
     plt.axvline(x=stim_change, color='r', linestyle='--', linewidth=1)
     plt.text(stim_change, -1, 'Stimulus\n Change', rotation=90, color='r', verticalalignment='bottom')
 
