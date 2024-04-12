@@ -3,6 +3,8 @@ import pandas as pd
 import MinCompSpin_Python.MinCompSpin as mod
 import raster_plots as rplt
 import os
+import scipy.cluster.hierarchy as sch
+from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
@@ -71,7 +73,7 @@ def generate_coocurrance_matrix(MCM_partitions, n):
     for i in range(n):
         for j in range(n):
             for component in communities:
-                if (component[i] == "1") & (component[j] == "1"):
+                if (((component[i] == "1") & (component[j] == "1")) & (i != j)):
                     matrix[i,j] = 1
 
     return matrix
@@ -132,6 +134,56 @@ def plot_heatmap(data, neuron_series, spikeData, save_dir, filename, trial_comb)
     area_labels = ["V1", "CG1", "PPC"]
     legend_patches = [mpatches.Patch(color=color, label=label) for color, label in zip(label_colors, area_labels)]
     plt.legend(handles=legend_patches, bbox_to_anchor=(1.05, 1), loc='best', title="Brain Area")
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Save the figure
+    plt.savefig(f"{save_dir}/{filename}.png")
+
+
+def plot_dendrogram(co_occurence_matrix, neuron_ids, spikeData, save_dir, filename):
+    # Convert to distance matrix
+    max_similarity = np.max(co_occurence_matrix)
+    distance_matrix = max_similarity - co_occurence_matrix
+
+    for i in range(n):
+        distance_matrix[i][i] = 0
+
+    # Scaling the distance matrix so that its values are between 1 and 0
+    scaler = MinMaxScaler()
+    distance_matrix_norm = scaler.fit_transform(distance_matrix)
+
+    # Compute linkage matrix
+    linkage_matrix = sch.linkage(sch.distance.squareform(distance_matrix_norm), method='ward')
+
+    # Plot dendrogram
+    plt.figure(figsize=(10, 6))
+    dendrogram = sch.dendrogram(linkage_matrix, labels=neuron_ids, leaf_rotation=90)
+    plt.title('Hierarchical Clustering Dendrogram')
+    plt.xlabel('Neuron Index')
+    plt.ylabel('Distance')
+
+    # Color the y-axis labels based on which brain area they belong to
+    tick_labels = plt.gca().get_xticklabels()
+    label_colors = ["blue", "green", "magenta"]
+    for tick_label in tick_labels:
+        neuron_ID = tick_label.get_text()
+        row_index = spikeData.index[spikeData["cell_ID"] == neuron_ID].to_list()
+        area = spikeData.at[row_index[0], "area"]
+        if area == "V1":
+            tick_label.set_color(label_colors[0])
+        elif area == "CG1":
+            tick_label.set_color(label_colors[1])
+        else:
+            tick_label.set_color(label_colors[2])
+
+    # Add an additional legend to explain the different brain areas
+    area_labels = ["V1", "CG1", "PPC"]
+    legend_patches = [mpatches.Patch(color=color, label=label) for color, label in zip(label_colors, area_labels)]
+    plt.legend(handles=legend_patches, bbox_to_anchor=(1, 1), loc='upper left', title="Brain Area")
+
+    plt.subplots_adjust(bottom=0.2)
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -323,63 +375,70 @@ comp_size_list = []
 
 ########################################################################################################################################################################
 
-# # Create and plot a superimposed co-occurrence matrix
-# # for every combination of stimuli before change in each session
-# for index, session in sessionData.iterrows():
-#     # get the trials from this session
-#     ses_ID = session["session_ID"]
-#     ses_trials = trialBinData[trialBinData["session_ID"] == ses_ID]
+# Create and plot a superimposed co-occurrence matrix
+# for every combination of stimuli before change in each session
+for index, session in sessionData.iterrows():
+    # get the trials from this session
+    ses_ID = session["session_ID"]
+    ses_trials = trialBinData[trialBinData["session_ID"] == ses_ID]
 
-#     # get the neurons from the session and their number
-#     ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
-#     neuron_series = ses_neurons["cell_ID"]
-#     n = len(neuron_series)
+    # get the neurons from the session and their number
+    ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
+    neuron_series = ses_neurons["cell_ID"]
+    n = len(neuron_series)
+    neuron_ids = neuron_series.to_list()
 
-#     for visGroup in ses_trials.visGroupPreChange.unique():
-#         for audioGroup in ses_trials.audioGroupPreChange.unique():
-#             comb_trials = ses_trials[
-#                 (ses_trials["visGroupPreChange"] == visGroup) & (ses_trials["audioGroupPreChange"] == audioGroup)
-#             ]
-#             superimposed_matrix = np.zeros((n, n))
+    for visGroup in ses_trials.visGroupPreChange.unique():
+        for audioGroup in ses_trials.audioGroupPreChange.unique():
+            comb_trials = ses_trials[
+                (ses_trials["visGroupPreChange"] == visGroup) & (ses_trials["audioGroupPreChange"] == audioGroup)
+            ]
+            superimposed_matrix = np.zeros((n, n))
 
-#             # Iterating through every trial and generating the best
-#             # MCM for each trial
-#             for _, trial in comb_trials.iterrows():
+            # Iterating through every trial and generating the best
+            # MCM for each trial
+            for _, trial in comb_trials.iterrows():
 
-#                 # Converting the data into a format usable by the MCM
-#                 filename = f"session{ses_ID}_trial{trial['trialNum']}"
-#                 create_input_file(trial, 99, 299, filename, data_dir)
+                # Converting the data into a format usable by the MCM
+                filename = f"session{ses_ID}_trial{trial['trialNum']}"
+                create_input_file(trial, 99, 299, filename, data_dir)
 
-#                 data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
+                data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
 
-#                 # Creating the MCM
-#                 MCM_best = mod.MCM_GreedySearch(data, n, False)
+                # Creating the MCM
+                MCM_best = mod.MCM_GreedySearch(data, n, False)
 
-#                 # Calculate the Log evidence of the MCM and add it to the list
-#                 LogE = mod.LogE_MCM(data, MCM_best, MCM_best.r)
-#                 logE_list.append(LogE)
+                # Calculate the Log evidence of the MCM and add it to the list
+                LogE = mod.LogE_MCM(data, MCM_best, MCM_best.r)
+                logE_list.append(LogE)
 
-#                 # Calculate the log likelihood of the MCM and add it to the list
-#                 LogL = mod.LogL_MCM(data, MCM_best, MCM_best.r)
-#                 logL_list.append(LogL)
+                # Calculate the log likelihood of the MCM and add it to the list
+                LogL = mod.LogL_MCM(data, MCM_best, MCM_best.r)
+                logL_list.append(LogL)
 
-#                 # Generate the co-ocurrence matrix for the model
-#                 co_matrix = generate_coocurrance_matrix(MCM_best.array, n)
+                # Generate the co-ocurrence matrix for the model
+                co_matrix = generate_coocurrance_matrix(MCM_best.array, n)
 
-#                 # print(np.array2string(co_matrix, threshold=np.inf))
-#                 superimposed_matrix += co_matrix
+                # print(np.array2string(co_matrix, threshold=np.inf))
+                superimposed_matrix += co_matrix
 
-#             for i in range(n):
-#                 superimposed_matrix[i][i] = 0
+            plot_dendrogram(
+                superimposed_matrix,
+                neuron_ids,
+                spikeData,
+                f"{heatmap_dir}/dendrograms/{ses_ID}",
+                f"vis{visGroup}_audio{audioGroup}_dengrogram"
+                )
 
-#             plot_heatmap(
-#                 superimposed_matrix,
-#                 neuron_series,
-#                 ses_neurons,
-#                 f"{heatmap_dir}/session_{index+1}-{ses_ID}",
-#                 f"stim{visGroup}_{audioGroup}",
-#                 f"session {index+1} trials ({time_bin}ms time bin), stimulus combination before change:\nvisual {visGroup} degrees, auditory {audioGroup} ({len(comb_trials)} trials)"
-#             )
+
+            # plot_heatmap(
+            #     superimposed_matrix,
+            #     neuron_series,
+            #     ses_neurons,
+            #     f"{heatmap_dir}/session_{index+1}-{ses_ID}",
+            #     f"stim{visGroup}_{audioGroup}",
+            #     f"session {index+1} trials ({time_bin}ms time bin), stimulus combination before change:\nvisual {visGroup} degrees, auditory {audioGroup} ({len(comb_trials)} trials)"
+            # )
 
 
 ########################################################################################################################################################################
@@ -438,28 +497,28 @@ comp_size_list = []
 ########################################################################################################################################################################
 
 
-# Create and visualize the MCMs in the best basis
+# # Create and visualize the MCMs in the best basis
 
-directory = "./bestBasisData/transformedData"
+# directory = "./bestBasisData/transformedData"
 
-for filename in os.listdir(directory):
-    f = os.path.join(directory, filename)
+# for filename in os.listdir(directory):
+#     f = os.path.join(directory, filename)
 
-    # Get the number of variables from the file
-    with open(f, "r") as file:
-        first_line = file.readline()
-        n = len(first_line)
+#     # Get the number of variables from the file
+#     with open(f, "r") as file:
+#         first_line = file.readline()
+#         n = len(first_line)
 
-    # Find the best MCM for the data
-    data = mod.read_datafile(f, n)
-    MCM_best = mod.MCM_GreedySearch(data, n, False)
+#     # Find the best MCM for the data
+#     data = mod.read_datafile(f, n)
+#     MCM_best = mod.MCM_GreedySearch(data, n, False)
 
-    # Generate the co-ocurrence matrix for the model
-    co_matrix = generate_coocurrance_matrix(MCM_best.array, n)
+#     # Generate the co-ocurrence matrix for the model
+#     co_matrix = generate_coocurrance_matrix(MCM_best.array, n)
 
-    save_dir = "/Users/vojtamazur/Documents/Capstone_code/bestBasis/10ms"
-    trial_comb = filename[:(len(filename)-26)]
+#     save_dir = "/Users/vojtamazur/Documents/Capstone_code/bestBasis/10ms"
+#     trial_comb = filename[:(len(filename)-26)]
 
-    # Plot the co-occurence matrix and save it
-    plot_trans_basis(co_matrix, save_dir, trial_comb, trial_comb)
+#     # Plot the co-occurence matrix and save it
+#     plot_trans_basis(co_matrix, save_dir, trial_comb, trial_comb)
 
