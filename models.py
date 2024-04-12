@@ -140,6 +140,26 @@ def plot_heatmap(data, neuron_series, spikeData, save_dir, filename, trial_comb)
     plt.savefig(f"{save_dir}/{filename}.png")
 
 
+# A function to plot a heatmap based on a co-occurance frequency matrix
+# with a transformed data basis
+def plot_trans_basis(data, save_dir, filename, trial_comb):
+    # Plot the resulting superimposition of the matrices
+    plt.figure(figsize=(10, 8))
+    plt.imshow(data, aspect='auto', cmap='OrRd', interpolation='nearest')
+    plt.colorbar(label='Frequency of co-occurence in the same component')
+
+    plt.title(f'A heatmap showing the superimposed co-occurence matrices\n{trial_comb}')
+    plt.xlabel('Basis element')
+    plt.ylabel('Basis element')
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Save the figure
+    plt.savefig(f"{save_dir}/{filename}.png")
+
+
+
 # Getting the saved binarized data
 time_bin = "10"
 save_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
@@ -192,7 +212,7 @@ comp_size_list = []
 
 #             # generate the data file for MCM
 #             filename = f"visual{visGroup}_audio{audioGroup}"
-#             create_input_file(comb_trials, 99, 299, filename, data_dir)
+#             create_input_file(comb_trials, 0, 199, filename, data_dir)
 
 #             # finding the best MCM
 #             data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
@@ -212,7 +232,7 @@ comp_size_list = []
 #             r_list.append(MCM_best.r)
 #             session_list.append(ses_ID)
 #             trial_comb_list.append([visGroup, audioGroup])
-#             comp_size_list.append(count_component_size(MCM_best.array, n))
+#             comp_size_list.append(count_component_size(MCM_best.array, n, False))
 
 #             print(f"{visGroup} and {audioGroup} combination finished")
 
@@ -364,55 +384,82 @@ comp_size_list = []
 
 ########################################################################################################################################################################
 
-plt_save_dir = f"/Users/vojtamazur/Documents/Capstone_code/comp_sizes/{time_bin}ms"
+# plt_save_dir = f"/Users/vojtamazur/Documents/Capstone_code/comp_sizes/{time_bin}ms"
 
-# Calculate how the average component size increases with the number of trials included
-for index, session in sessionData.iterrows():
-    # get the trials from this session
-    ses_ID = session["session_ID"]
-    ses_trials = trialBinData[trialBinData["session_ID"] == ses_ID]
+# # Calculate how the average component size increases with the number of trials included
+# for index, session in sessionData.iterrows():
+#     # get the trials from this session
+#     ses_ID = session["session_ID"]
+#     ses_trials = trialBinData[trialBinData["session_ID"] == ses_ID]
 
-    # get the neurons from the session and their number
-    ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
-    neuron_series = ses_neurons["cell_ID"]
-    n = len(neuron_series)
+#     # get the neurons from the session and their number
+#     ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
+#     neuron_series = ses_neurons["cell_ID"]
+#     n = len(neuron_series)
 
-    # Iterating through each stimulus combination for valid comparisons
-    for visGroup in ses_trials.visGroupPreChange.unique():
-        for audioGroup in ses_trials.audioGroupPreChange.unique():
-            # Get the trials in this stimulus comnbination
-            comb_trials = ses_trials[
-                (ses_trials["visGroupPreChange"] == visGroup) & (ses_trials["audioGroupPreChange"] == audioGroup)
-            ]
+#     # Iterating through each stimulus combination for valid comparisons
+#     for visGroup in ses_trials.visGroupPreChange.unique():
+#         for audioGroup in ses_trials.audioGroupPreChange.unique():
+#             # Get the trials in this stimulus comnbination
+#             comb_trials = ses_trials[
+#                 (ses_trials["visGroupPreChange"] == visGroup) & (ses_trials["audioGroupPreChange"] == audioGroup)
+#             ]
 
-            comp_size_averages = []
-            trial_num = len(comb_trials)
+#             comp_size_averages = []
+#             trial_num = len(comb_trials)
 
-            # Loop through each number of possible trials and calculate the average component size
-            for trial_n in range(1, trial_num):
-                MCM_trials = comb_trials.iloc[0:trial_n, :]
+            # # Loop through each number of possible trials and calculate the average component size
+            # for trial_n in range(1, trial_num):
+            #     MCM_trials = comb_trials.iloc[0:trial_n, :]
 
-                # Converting the data into a format usable by the MCM
-                filename = f"session{ses_ID}_trial{trial_n}"
-                create_input_file(MCM_trials, 99, 299, filename, data_dir)
-                data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
+            #     # Converting the data into a format usable by the MCM
+            #     filename = f"session{ses_ID}_trial{trial_n}"
+            #     create_input_file(MCM_trials, 99, 299, filename, data_dir)
+            #     data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
 
-                # Creating the MCM
-                MCM_best = mod.MCM_GreedySearch(data, n, False)
+            #     # Creating the MCM
+            #     MCM_best = mod.MCM_GreedySearch(data, n, False)
 
-                # Calculate the average component size
-                avg_comp_size_full = np.mean(count_component_size(MCM_best.array, n, False))
-                avg_comp_size_excl = np.mean(count_component_size(MCM_best.array, n, True))
-                comp_size_averages.append((avg_comp_size_full, avg_comp_size_excl))
+            #     # Calculate the average component size
+            #     avg_comp_size_full = np.mean(count_component_size(MCM_best.array, n, False))
+            #     avg_comp_size_excl = np.mean(count_component_size(MCM_best.array, n, True))
+            #     comp_size_averages.append((avg_comp_size_full, avg_comp_size_excl))
 
-            if not os.path.exists(plt_save_dir):
-                os.makedirs(plt_save_dir)
+            # if not os.path.exists(plt_save_dir):
+            #     os.makedirs(plt_save_dir)
 
-            plt.figure(figsize=(6, 6))
-            plt.scatter(range(1, trial_num), [x[0] for x in comp_size_averages])
-            plt.title(f"Mean component size of the MCM plotted against the\nnumber of trials used in training\nStimulus combination: visual {visGroup}°, auditory {audioGroup}Hz")
-            plt.xlabel('No. of trials used for the MCM')
-            plt.ylabel('Mean component size')
-            plt.savefig(f"{plt_save_dir}/vis{visGroup}_aud{audioGroup}_comp_sizes_plot.png")
+            # plt.figure(figsize=(6, 6))
+            # plt.scatter(range(1, trial_num), [x[0] for x in comp_size_averages])
+            # plt.title(f"Mean component size of the MCM plotted against the\nnumber of trials used in training\nStimulus combination: visual {visGroup}°, auditory {audioGroup}Hz")
+            # plt.xlabel('No. of trials used for the MCM')
+            # plt.ylabel('Mean component size')
+            # plt.savefig(f"{plt_save_dir}/vis{visGroup}_aud{audioGroup}_comp_sizes_plot.png")
 
+########################################################################################################################################################################
+
+
+# Create and visualize the MCMs in the best basis
+
+directory = "./bestBasisData/transformedData"
+
+for filename in os.listdir(directory):
+    f = os.path.join(directory, filename)
+
+    # Get the number of variables from the file
+    with open(f, "r") as file:
+        first_line = file.readline()
+        n = len(first_line)
+
+    # Find the best MCM for the data
+    data = mod.read_datafile(f, n)
+    MCM_best = mod.MCM_GreedySearch(data, n, False)
+
+    # Generate the co-ocurrence matrix for the model
+    co_matrix = generate_coocurrance_matrix(MCM_best.array, n)
+
+    save_dir = "/Users/vojtamazur/Documents/Capstone_code/bestBasis/10ms"
+    trial_comb = filename[:(len(filename)-26)]
+
+    # Plot the co-occurence matrix and save it
+    plot_trans_basis(co_matrix, save_dir, trial_comb, trial_comb)
 
