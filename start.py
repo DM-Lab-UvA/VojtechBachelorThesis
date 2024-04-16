@@ -16,9 +16,6 @@ experiment = ["ChangeDetectionConflict"]
 trialData, sessionData, spikeData = utils.load_data(path_root, experiment)
 spikeData = utils.exclude_neurons(spikeData, sessionData, min_fire, quality)
 
-session_overview = utils.perf_overview(sessionData, trialData)
-# figure out what this variable is
-
 trialData['visGroupPreChange'] = trialData['visualOriPreChange'].apply(utils.assign_group_visual)
 trialData['visGroupPostChange'] = trialData['visualOriPostChange'].apply(utils.assign_group_visual)
 trialData['audioGroupPostChange'] = trialData['audioFreqPostChange'].apply(utils.assign_group_auditory)
@@ -42,9 +39,9 @@ fTrialData = trialData.dropna(how="any", subset = ["trialStart", "trialEnd", "st
 ########################################################################################################################################################################
 
 
-# # The following code can be used to obtain the unique combinations of all trial stimuli:
+# The following code can be used to obtain the unique combinations of all trial stimuli:
 
-# # Combinations before the stimulus change:
+# Combinations before the stimulus change:
 # unique_combinations_pre = trialData.groupby(['visualOriPreChange', 'audioFreqPreChange']).size().reset_index(name='Count')
 # # Combinations after the stimulus change:
 # unique_combinations_post = trialData.groupby(['visualOriPostChange', 'audioFreqPostChange']).size().reset_index(name='Count')
@@ -75,7 +72,7 @@ fTrialData = trialData.dropna(how="any", subset = ["trialStart", "trialEnd", "st
 # # #######################################################################################################################################################################
 
 # # Binarizing intervals and saving them as pickle files
-interval = 10000
+interval = 20000
 # spike_file = "3s-1sTrialSpikes.pkl"
 # save_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
 
@@ -87,12 +84,12 @@ interval = 10000
 
 # ########################################################################################################################################################################
 
-save_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
-plot_dir = "/Users/vojtamazur/Documents/Capstone_code/raster_plots/"
-spike_file = "binSpikeTrials_10ms.pkl"
+# save_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
+# plot_dir = "/Users/vojtamazur/Documents/Capstone_code/raster_plots/"
+# spike_file = "binSpikeTrials_10ms.pkl"
 
-# Getting the saved binarized data
-trialBinData = pd.read_pickle(f"{save_dir}/{spike_file}")
+# # Getting the saved binarized data
+# trialBinData = pd.read_pickle(f"{save_dir}/{spike_file}")
 
 # # Plotting superimposed Raster plots for each session
 # for index, session in sessionData.iterrows():
@@ -134,18 +131,18 @@ trialBinData = pd.read_pickle(f"{save_dir}/{spike_file}")
 #     rplt.raster_plot_individual(trial, spikeData, ses_ID, interval, plt_save_dir)
 
 
-# Plotting the Raster plots to be used in the Capstone text
-visGroup, audioGroup = ["225-230", "13000-13020"]
-comb_trials = trialBinData[(trialBinData["visGroupPreChange"] == visGroup) & (trialBinData["audioGroupPreChange"] == audioGroup)]
-trial1 = comb_trials.iloc[0, :]
+# # Plotting the Raster plots to be used in the Capstone text
+# visGroup, audioGroup = ["225-230", "13000-13020"]
+# comb_trials = trialBinData[(trialBinData["visGroupPreChange"] == visGroup) & (trialBinData["audioGroupPreChange"] == audioGroup)]
+# trial1 = comb_trials.iloc[0, :]
 
-rplt.raster_plot_superimposed(
-    comb_trials,
-    spikeData,
-    trial1["session_ID"],
-    interval,
-    f"visual {visGroup} audio {audioGroup} text plot", f"{plot_dir}/main_text",
-    title=False)
+# rplt.raster_plot_superimposed(
+#     comb_trials,
+#     spikeData,
+#     trial1["session_ID"],
+#     interval,
+#     f"visual {visGroup} audio {audioGroup} text plot", f"{plot_dir}/main_text",
+#     title=False)
 
 
 
@@ -160,3 +157,5 @@ rplt.raster_plot_superimposed(
 
 # filename = f"binSpikeCounts_{int(interval/1000)}ms"
 # trialBinCountData.to_pickle(f'{save_dir}/{filename}.pkl')
+
+
