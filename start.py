@@ -72,15 +72,15 @@ fTrialData = trialData.dropna(how="any", subset = ["trialStart", "trialEnd", "st
 # # #######################################################################################################################################################################
 
 # # Binarizing intervals and saving them as pickle files
-interval = 20000
-# spike_file = "3s-1sTrialSpikes.pkl"
-# save_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
+interval = 50000
+spike_file = "3s-1sTrialSpikes.pkl"
+save_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
 
-# trialSpikesData = pd.read_pickle(f"{save_dir}/{spike_file}")
-# trialBinData = utils.binarize_neurons_in_trial(trialSpikesData, interval)
+trialSpikesData = pd.read_pickle(f"{save_dir}/{spike_file}")
+trialBinData = utils.binarize_neurons_in_trial(trialSpikesData, interval)
 
-# filename = f"binSpikeTrials_{int(interval/1000)}ms"
-# trialBinData.to_pickle(f'{save_dir}/{filename}.pkl')
+filename = f"binSpikeTrials_{int(interval/1000)}ms"
+trialBinData.to_pickle(f'{save_dir}/{filename}.pkl')
 
 # ########################################################################################################################################################################
 

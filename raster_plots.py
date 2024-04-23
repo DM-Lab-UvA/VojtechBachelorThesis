@@ -54,7 +54,7 @@ def raster_plot_superimposed(trial_df, spike_df, session_ID, interval, trial_sel
         total_spikes += neuron_arr
 
     # Set up the plot
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(12, 10))
 
     # Generate the plot of superimposed spiking data
     plt.imshow(total_spikes, aspect='auto', cmap='viridis', interpolation='nearest')
