@@ -429,119 +429,125 @@ for index, session in sessionData.iterrows():
 
 ########################################## MCMs of CONCATENATED TRIALS #########################################################################################################
 
-# Initializing the variables for a dataframe:
-session_list = []
-vis_group_list = []
-aud_group_list = []
-cluster_list = []
-bin_list = []
+# # Initializing the variables for a dataframe:
+# session_list = []
+# reordered_series_list = []
+# partition_list = []
+# linkage_list = []
+# bin_list = []
 
-# Bootstrap concatenations of enough trials to get 1000 data points
-time_bins = [5, 10, 20, 40, 50]
-min_data_size = 1000
-sample_count = 30
+# # Bootstrap concatenations of enough trials to get 1000 data points
+# time_bins = [5, 10, 15, 20, 25, 30]
+# min_data_size = 1500
+# sample_count = 30
 
-for time_bin in time_bins:
-    # Getting the saved binarized data
-    spike_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
-    spike_file = f"binSpikeTrials_{time_bin}ms.pkl"
-    trialBinData = pd.read_pickle(f"{spike_dir}/{spike_file}")
+# for time_bin in time_bins:
+#     # Getting the saved binarized data
+#     spike_dir = "/Users/vojtamazur/Documents/Capstone_code/spike_data/"
+#     spike_file = f"binSpikeTrials_{time_bin}ms.pkl"
+#     trialBinData = pd.read_pickle(f"{spike_dir}/{spike_file}")
 
-    # Calculate the number of concatenated trials necessary for a data size of 1000
-    sample_size = math.ceil(time_bin*(min_data_size/2000))
+#     # Calculate the number of concatenated trials necessary for a data size of 1000
+#     sample_size = math.ceil(time_bin*(min_data_size/2000))
 
-    for index, session in sessionData.iterrows():
-        # get the trials from this session
-        ses_ID = session["session_ID"]
-        ses_trials = trialBinData[trialBinData["session_ID"] == ses_ID]
+#     for index, session in sessionData.iterrows():
+#         # get the trials from this session
+#         ses_ID = session["session_ID"]
+#         ses_trials = trialBinData[trialBinData["session_ID"] == ses_ID]
 
-        # get the neurons from the session and their number
-        ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
-        neuron_series = ses_neurons["cell_ID"]
-        n = len(neuron_series)
-        neuron_ids = neuron_series.to_list()
+#         # get the neurons from the session and their number
+#         ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
+#         neuron_series = ses_neurons["cell_ID"]
+#         n = len(neuron_series)
+#         neuron_ids = neuron_series.to_list()
 
-        for visGroup in ses_trials.visGroupPreChange.unique():
-            for audioGroup in ses_trials.audioGroupPreChange.unique():
-                comb_trials = ses_trials[
-                    (ses_trials["visGroupPreChange"] == visGroup) & (ses_trials["audioGroupPreChange"] == audioGroup)
-                ]
-                superimposed_matrix = np.zeros((n, n))
+#         superimposed_matrix = np.zeros((n, n))
+#         partitions = []
+#         for i in range(sample_count):
+#             sampleTrials = pd.DataFrame(columns=trialBinData.columns)
+#             for visGroup in ses_trials.visGroupPreChange.unique():
+#                 for audioGroup in ses_trials.audioGroupPreChange.unique():
+#                     combTrials = ses_trials[
+#                         (ses_trials["visGroupPreChange"] == visGroup) & (ses_trials["audioGroupPreChange"] == audioGroup)
+#                     ]
+#                     combSample = combTrials.sample(n=sample_size)
 
-                for i in range(sample_count):
-                    trial_sample = comb_trials.sample(n=sample_size)
+#                     sampleTrials = pd.concat([sampleTrials, combSample])
 
-                    # Converting the data into a format usable by the MCM
-                    filename = f"session{ses_ID}_concat_{time_bin}ms"
-                    create_input_file(trial_sample, 0, int(2000/time_bin)-1, filename, data_dir)
+#             # Converting the data into a format usable by the MCM
+#             filename = f"session{ses_ID}_concat_{time_bin}ms"
+#             create_input_file(sampleTrials, 0, int(2000/time_bin)-1, filename, data_dir)
 
-                    data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
+#             data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
 
-                    # Creating the MCM
-                    MCM_best = mod.MCM_GreedySearch(data, n, False)
+#             # Creating the MCM
+#             MCM_best = mod.MCM_GreedySearch(data, n, False)
 
-                    # Generate the co-ocurrence matrix for the model
-                    co_matrix = generate_coocurrance_matrix(MCM_best.array, n)
-                    superimposed_matrix += co_matrix
+#             # Generate the co-ocurrence matrix for the model
+#             co_matrix = generate_coocurrance_matrix(MCM_best.array, n)
+#             superimposed_matrix += co_matrix
 
-                heatmap_dir = f"/Users/vojtamazur/Documents/Capstone_code/superimposed_matrices/concat_trials/{min_data_size}_data_points/{time_bin}ms/{index+1}_{ses_ID}"
-                dendrogram_dir = f"/Users/vojtamazur/Documents/Capstone_code/superimposed_matrices/dendrograms/{min_data_size}_data_points/{time_bin}ms/{index+1}_{ses_ID}"
-                description = f"Session {index + 1} ({ses_ID}), ({time_bin}ms time bin)\nStimulus combination {visGroup}° and {audioGroup}Hz"
-                fname = f"{min_data_size}vis{visGroup}_audio{audioGroup}"
+#             partitions.append(MCM_best.array)
 
-                # Hierarchically cluster the data and plot the dendrogram
-                linkage_matrix = get_linkage_matrix(superimposed_matrix)
-                # reordered_series = plot_dendrogram(
-                #     linkage_matrix,
-                #     neuron_ids,
-                #     spikeData,
-                #     dendrogram_dir,
-                #     f"{fname}_concat_trials"
-                # )
+#         # Setting up variables necessary for the heatmap + dendrogram creation
+#         heatmap_dir = f"/Users/vojtamazur/Documents/Capstone_code/superimposed_matrices/concat_trials/{min_data_size}_data_points/{time_bin}ms"
+#         dendrogram_dir = f"/Users/vojtamazur/Documents/Capstone_code/superimposed_matrices/dendrograms/{min_data_size}_data_points/{time_bin}ms"
+#         description = f"Session {index + 1} ({ses_ID}), ({time_bin}ms time bin)"
+#         fname = f"session{index+1}-{ses_ID}_full"
 
-                # # Plot the superimposed co-occurence matrices
-                # reordered_matrix = reorder_matrix(reordered_series, neuron_series, superimposed_matrix)
+#         # Hierarchically cluster the data and plot the dendrogram
+#         linkage_matrix = get_linkage_matrix(superimposed_matrix)
+#         reordered_series = plot_dendrogram(
+#             linkage_matrix,
+#             neuron_ids,
+#             spikeData,
+#             dendrogram_dir,
+#             f"{fname}_concat_trials"
+#         )
 
-                # plot_heatmap(
-                #     reordered_matrix,
-                #     reordered_series,
-                #     ses_neurons,
-                #     heatmap_dir,
-                #     f"{fname}_reordered",
-                #     description
-                # )
+#         # Plot the superimposed co-occurence matrices
+#         reordered_matrix = reorder_matrix(reordered_series, neuron_series, superimposed_matrix)
 
-                # plot_heatmap(
-                #     superimposed_matrix,
-                #     neuron_series,
-                #     ses_neurons,
-                #     heatmap_dir,
-                #     fname,
-                #     description
-                # )
+#         plot_heatmap(
+#             reordered_matrix,
+#             reordered_series,
+#             ses_neurons,
+#             heatmap_dir,
+#             f"{fname}_reordered",
+#             description
+#         )
 
-                threshold = 1
-                clusters = fcluster(linkage_matrix, threshold, criterion="distance")
+#         plot_heatmap(
+#             superimposed_matrix,
+#             neuron_series,
+#             ses_neurons,
+#             heatmap_dir,
+#             fname,
+#             description
+#         )
 
-                cluster_list.append(clusters)
-                session_list.append(ses_ID)
-                vis_group_list.append(visGroup)
-                aud_group_list.append(audioGroup)
-                bin_list.append(time_bin)
+#         threshold = 1
+#         clusters = fcluster(linkage_matrix, threshold, criterion="distance")
+
+#         session_list.append(ses_ID)
+#         bin_list.append(time_bin)
+#         reordered_series_list.append(reordered_series.to_list())
+#         partition_list.append(partitions)
+#         linkage_list.append(linkage_matrix)
 
 
-data = {
-    "session_ID": session_list,
-    "time_bin": bin_list,
-    "visGroup": vis_group_list,
-    "audioGroup": aud_group_list,
-    "clusters": cluster_list,
-}
+# data = {
+#     "session_ID": session_list,
+#     "time_Bin": bin_list,
+#     "reordered_Series": reordered_series_list,
+#     "MCM_Partition": partition_list,
+#     "linkage_Matrix": linkage_list
+# }
 
-save_dir = "/Users/vojtamazur/Documents/Capstone_code/superimposed_matrices/"
-clusterDF = pd.DataFrame(data)
-print(clusterDF)
-clusterDF.to_pickle(f"{save_dir}/bc_clusters_concat_trials.pkl")
+# save_dir = "/Users/vojtamazur/Documents/Capstone_code/superimposed_matrices/data"
+# clusterDF = pd.DataFrame(data)
+# print(clusterDF)
+# clusterDF.to_pickle(f"{save_dir}/bc_clusters_full_ses.pkl")
 ########################################################################################################################################################################
 
 ######################################### Calculate how the average component size increases with the number of trials included ################################################################################
