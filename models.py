@@ -622,7 +622,6 @@ comp_size_list = []
 
 
 
-
 ########################################################################################################################################################################
 
 ############################# MCMs of CONCATENATED TRIALS for 20ms for LogE-LogE plots #########################################################################################################
@@ -639,7 +638,7 @@ sample_size = 15
 sample_count = 30
 
 session_list = []
-bin_list = []
+Tset_list = []
 partition_list = []
 linkage_list = []
 vis_group_list = []
@@ -656,7 +655,6 @@ for index, session in sessionData.iterrows():
     ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
     neuron_series = ses_neurons["cell_ID"]
     n = len(neuron_series)
-    neuron_ids = neuron_series.to_list()
 
      # Iterate through every combination of visual and audio stimuli
     for visGroup in ses_trials.visGroupPreChange.unique():
@@ -665,53 +663,69 @@ for index, session in sessionData.iterrows():
                 (ses_trials["visGroupPreChange"] == visGroup) & (ses_trials["audioGroupPreChange"] == audioGroup)
             ]
 
-            # Set up the superimposed matrix and partitions list
-            superimposed_matrix = np.zeros((n, n))
-            partitions = []
-            logE_list = []
-            logL_list = []
+            # Split the combination trial data in 2 equal parts
+            midway_point = len(combTrials) // 2
+            combTrials1 = combTrials.iloc[:midway_point]
+            combTrials2 = combTrials.iloc[midway_point:]
 
-            for i in range(sample_count):
-                # Obtaing a sample of the trials
-                sampleTrials = combTrials.sample(n=sample_size)
+            # Check if after the split there are still enough trials for bootstrap sampling
+            if len(combTrials1) >= 20:
+                for t_set, trials in zip([1, 2], [combTrials1, combTrials2]):
 
-                # Converting the data into a format usable by the MCM
-                filename = f"session{ses_ID}_concat_{time_bin}ms"
-                create_input_file(sampleTrials, 0, int(2000/time_bin)-1, filename, data_dir)
+                    # Set up the superimposed matrix and partitions list
+                    superimposed_matrix = np.zeros((n, n))
+                    partitions = []
+                    logE_list = []
+                    logL_list = []
 
-                data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
+                    for i in range(sample_count):
+                        # Obtaing a sample of the trials
+                        sampleTrials = trials.sample(n=sample_size)
 
-                # Creating the MCM
-                MCM_best = mod.MCM_GreedySearch(data, n, False)
+                        # Converting the data into a format usable by the MCM
+                        filename = f"session{ses_ID}_concat_{time_bin}ms"
+                        create_input_file(sampleTrials, 0, int(2000/time_bin)-1, filename, data_dir)
 
-                logE = mod.LogE_MCM(data, MCM_best, MCM_best.r)
-                logL = mod.LogL_MCM(data, MCM_best, MCM_best.r)
+                        data = mod.read_datafile(f"{data_dir}/{filename}.dat", n)
 
-                # Generate the co-ocurrence matrix for the model
-                co_matrix = generate_coocurrance_matrix(MCM_best.array, n)
-                superimposed_matrix += co_matrix
+                        # Creating the MCM
+                        MCM_best = mod.MCM_GreedySearch(data, n, False)
 
-                partitions.append(MCM_best.array)
-                logE_list.append(logE)
-                logL_list.append(logL)
+                        logE = mod.LogE_MCM(data, MCM_best, MCM_best.r)
+                        logL = mod.LogL_MCM(data, MCM_best, MCM_best.r)
 
-            # Hierarchically cluster the data and plot the dendrogram
-            linkage_matrix = get_linkage_matrix(superimposed_matrix)
+                        # Generate the co-ocurrence matrix for the model
+                        co_matrix = generate_coocurrance_matrix(MCM_best.array, n)
+                        superimposed_matrix += co_matrix
 
-            session_list.append(ses_ID)
-            bin_list.append(time_bin)
-            partition_list.append(partitions)
-            linkage_list.append(linkage_matrix)
-            vis_group_list.append(visGroup)
-            audio_group_list.append(audioGroup)
-            log_evidences.append(np.array(logE_list))
-            log_likelihoods.append(np.array(logL_list))
+                        partitions.append(MCM_best.array)
+                        logE_list.append(logE)
+                        logL_list.append(logL)
+
+                    # Hierarchically cluster the data and plot the dendrogram
+                    linkage_matrix = get_linkage_matrix(superimposed_matrix)
+                    reordered_series = plot_dendrogram(
+                        linkage_matrix,
+                        neuron_ids,
+                        spikeData,
+                        "",
+                        ""
+                    )
+
+                    session_list.append(ses_ID)
+                    Tset_list.append(t_set)
+                    partition_list.append(partitions)
+                    linkage_list.append(linkage_matrix)
+                    vis_group_list.append(visGroup)
+                    audio_group_list.append(audioGroup)
+                    log_evidences.append(np.array(logE_list))
+                    log_likelihoods.append(np.array(logL_list))
 
 
 # Save the data in a dataframe as a pickle file
 data = {
     "session_ID": session_list,
-    "time_bin": bin_list,
+    "trial_set": Tset_list,
     "MCM_partition": partition_list,
     "linkage_matrix": linkage_list,
     "visGroup": vis_group_list,
@@ -724,14 +738,16 @@ save_dir = "/Users/vojtamazur/Documents/Capstone_code/superimposed_matrices/data
 clusterDF = pd.DataFrame(data)
 print(clusterDF)
 
-clusterDF.to_pickle(f"{save_dir}/bc_20ms_MCM_data.pkl")
+clusterDF.to_pickle(f"{save_dir}/bc_20ms_2set_MCM_data.pkl")
 
 
 
 
-########################################################################################################################################################################
 
-# # # Plotting the heatmaps to be used in the Capstone text
+
+#######################################################################################################################################################################
+
+# # Plotting the heatmaps to be used in the Capstone text
 
 
 # visGroup, audioGroup = ["225-230", "13000-13020"]
@@ -792,4 +808,4 @@ clusterDF.to_pickle(f"{save_dir}/bc_20ms_MCM_data.pkl")
 #     fname
 #                 )
 
-########################################################################################################################################################################
+# ########################################################################################################################################################################
