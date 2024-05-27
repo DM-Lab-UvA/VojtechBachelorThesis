@@ -2,6 +2,7 @@ import scipy.io as sio
 import numpy as np
 import pandas as pd
 import os
+import h5py
 from datetime import datetime
 from pathlib import Path
 import warnings
@@ -25,12 +26,58 @@ def exclude_neurons(spikeData,sessionData,min_fire,quality):
 
     return spikeData_excl
 
+
+def load_mat_file(file_path, variable_name):
+    try:
+        # Try loading with scipy.io.loadmat
+        data = sio.loadmat(file_path, squeeze_me=True)
+        if variable_name in data:
+            return data[variable_name]
+    except NotImplementedError:
+        # If scipy.io.loadmat fails, try loading with h5py
+        with h5py.File(file_path, 'r') as f:
+            dGroup = f[variable_name]
+            # print({key: f[variable_name][key][0] for key in f[variable_name].keys()})
+
+            data = {key: f[variable_name][key] for key in f[variable_name].keys()}
+            return {key: np.array(resolve_hdf5_reference(data[key][0, 0], f)) for key in data.keys()}
+
+
+def resolve_hdf5_reference(reference, file):
+    try:
+        if isinstance(reference, h5py.Reference):
+            return file[reference]
+        elif isinstance(reference, np.ndarray) and reference.dtype == h5py.ref_dtype:
+            return np.array([file[ref] for ref in reference])
+    except Exception as e:
+        print(f"Failed to resolve HDF5 reference: {e}")
+    return reference
+
+
+def convert_to_dataframe(data, dtype, file_path=None):
+    if isinstance(data, dict):
+        data_dict = data
+    else:
+        # Handle the case when data is loaded with scipy.io.loadmat
+        data_dict = {x: data[x].item() for x in data.dtype.names}
+        data_dict = {key: np.array(data_dict[key]) for key in data_dict.keys()}
+
+
+    if (dtype == "sessionData") or (dtype == "videoData"):
+        for var in data_dict:
+            if isinstance(data_dict[var], np.ndarray):
+                data_dict[var] = [data_dict[var]]
+
+    return pd.DataFrame(data_dict)
+
+
 def load_data(path_root, experiment):
     all_sessions = []
-    data_types = ['trialData', 'sessionData', 'spikeData']
-    trialData = 0
-    sessionData = 0
-    spikeData = 0
+    data_types = ['trialData', 'sessionData', 'spikeData', 'videoData']
+    trialData = pd.DataFrame()
+    sessionData = pd.DataFrame()
+    spikeData = pd.DataFrame()
+    videoData = pd.DataFrame()
 
     for exp in experiment:
         animals = os.listdir(os.path.join(path_root, exp))
@@ -39,56 +86,31 @@ def load_data(path_root, experiment):
                 continue
             sessions = os.listdir(os.path.join(path_root, exp, anml))
             for ses in sessions:
-                if not (os.path.exists(os.path.join(path_root, exp, anml, ses, 'sessionData.mat')) &
-                        os.path.exists(os.path.join(path_root, exp, anml, ses, 'trialData.mat')) &
-                        os.path.exists(os.path.join(path_root, exp, anml, ses, 'spikeData.mat'))):
+                if not all(os.path.exists(os.path.join(path_root, exp, anml, ses, f'{dtype}.mat')) for dtype in data_types):
                     continue
                 all_sessions.append(os.path.join(path_root, exp, anml, ses))
 
-
     for ses in all_sessions:
-        for type in data_types:
-            # load file
-            loaded_data_ext = sio.loadmat(os.path.join(ses, type), squeeze_me=True)
-            # then extract just the data
-            loaded_data = loaded_data_ext[type]
-            loaded_data_dct = {x: loaded_data[x].item() for x in loaded_data.dtype.names}
+        for dtype in data_types:
+            file_path = os.path.join(ses, f'{dtype}.mat')
+            loaded_data = load_mat_file(file_path, dtype)
+            loaded_data_df = convert_to_dataframe(loaded_data, dtype, file_path if dtype == 'videoData' else None)
 
-            if type is 'sessionData':
-                for var in loaded_data_dct:
-                    if loaded_data_dct[var].__class__ is np.ndarray:
-                        loaded_data_dct[var] = [loaded_data_dct[var]]
+            if dtype == 'trialData':
+                trialData = pd.concat([trialData, loaded_data_df], axis=0)
+            elif dtype == 'sessionData':
+                sessionData = pd.concat([sessionData, loaded_data_df], axis=0)
+            elif dtype == 'spikeData':
+                spikeData = pd.concat([spikeData, loaded_data_df], axis=0)
+            elif dtype == 'videoData':
+                videoData = pd.concat([videoData, loaded_data_df], axis=0)
 
-            #if type is 'spikeData':
-            #    del loaded_data_dct['probeFile']
+    trialData.reset_index(inplace=True, drop=True)
+    sessionData.reset_index(inplace=True, drop=True)
+    spikeData.reset_index(inplace=True, drop=True)
+    videoData.reset_index(inplace=True, drop=True)
 
-            loaded_data_df = pd.DataFrame(loaded_data_dct)
-
-            if type is 'trialData':
-                if not isinstance(trialData, pd.DataFrame):
-                    trialData = loaded_data_df
-                else:
-                    trialData = pd.concat([trialData, loaded_data_df], axis=0)
-            elif type is 'sessionData':
-                if not isinstance(sessionData, pd.DataFrame):
-                    sessionData = loaded_data_df
-                else:
-                    for var in loaded_data_dct:
-                        if loaded_data_dct[var].__class__ is np.ndarray:
-                            loaded_data_dct[var] = [loaded_data_dct[var]]
-                    sessionData = pd.concat([sessionData, loaded_data_df], axis=0)
-            elif type is 'spikeData':
-                if not isinstance(spikeData, pd.DataFrame):
-                    spikeData = loaded_data_df
-                else:
-                    spikeData = pd.concat([spikeData, loaded_data_df], axis=0)
-
-    trialData.reset_index(inplace=True)
-    sessionData.reset_index(inplace=True)
-    spikeData.reset_index(inplace=True)
-
-    return(trialData, sessionData, spikeData)
-
+    return trialData, sessionData, spikeData, videoData
 
 
 # Function to assign group number based on visual orientation angle
@@ -292,10 +314,10 @@ def count_bin_spikes(trialData, interval):
             bin_spike_counts[neuron] = count_series
 
         trialSpikeCounts.append(bin_spike_counts)
-        print(f"Trial {trial['trialNum']} done")
+        # print(f"Trial {trial['trialNum']} done")
 
-    trialData["binSpikeCounts"] = trialSpikeCounts
-    return trialData
+    # trialData[f"binSpikeCounts{int(interval/1000)}"] = trialSpikeCounts
+    return trialSpikeCounts
 
 
 

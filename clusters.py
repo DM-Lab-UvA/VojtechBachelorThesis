@@ -6,6 +6,7 @@ import models
 import MinCompSpin_Python.MinCompSpin as mod
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from matplotlib.lines import Line2D
 from scipy.cluster.hierarchy import fcluster
 from collections import Counter
 
@@ -63,80 +64,129 @@ means_nmi = []
 
 # for ses_ID in sessionData["session_ID"]:
 #     ses_clusterDF = clusterDF[clusterDF["session_ID"] == ses_ID]
+#     # get the neurons from the session and their number
+#     ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
+#     neuron_series = ses_neurons["cell_ID"]
+#     n = len(neuron_series)
+
 #     for visGroup in ses_clusterDF.visGroup.unique():
 #         for audioGroup in ses_clusterDF.audioGroup.unique():
 #             comb_clusterDF = ses_clusterDF[(ses_clusterDF["visGroup"] == visGroup) & (ses_clusterDF["audioGroup"] == audioGroup)]
+#             partitions = comb_clusterDF["MCM_Partition"]
 
-#             linkage_matrices = comb_clusterDF["linkage_Matrix"]
-#             cluster_list = [fcluster(x, 0.7*max(x[:, 2]), criterion="distance") for x in linkage_matrices]
+#             clusterings = []
+
+#             for t_bin_partitions in partitions:
+#                 for partition in t_bin_partitions:
+#                     clusters = np.zeros(n)
+
+#                     for community_index, community in enumerate(partition):
+#                         if n <= 64:
+#                             component = bin(community[1])[2:].zfill(n)
+#                         else:
+#                             comp1 = bin(community[1])[2:].zfill(64)
+#                             comp2 = bin(community[2])[2:].zfill(n-64)
+#                             component = comp1 + comp2
+
+#                         for variable_index, belongs in enumerate(component):
+#                             if belongs == '1':
+#                                 clusters[variable_index] = community_index
+#                     clusterings.append(clusters)
+#             print(len(clusterings))
 
 #             # calculate comparison indices
-#             ari_score = calc_cluster_comparison(cluster_list, adjusted_rand_score)
-#             nmi_score = calc_cluster_comparison(cluster_list, normalized_mutual_info_score)
-#             print(f"\nFor the combination {visGroup}° and {audioGroup}Hz:")
-#             print("ARI score:")
-#             print(ari_score)
-#             print("NMI score:")
-#             print(nmi_score)
+#             ari_score = calc_cluster_comparison(clusterings, adjusted_rand_score)
+#             nmi_score = calc_cluster_comparison(clusterings, normalized_mutual_info_score)
+#             # print(f"\nFor the combination {visGroup}° and {audioGroup}Hz:")
+#             # print("ARI score:")
+#             # print(ari_score)
+#             # print("NMI score:")
+#             # print(nmi_score)
 
-            # where_matrix = np.full(ari_score.shape, True)
-            # for i in range(len(ari_score)):
-            #     for j in range(len(ari_score)):
-            #         if i == j:
-            #             where_matrix[i][j] = False
-            # print(where_matrix)
+#             where_matrix = np.full(ari_score.shape, True)
+#             for i in range(len(ari_score)):
+#                 for j in range(len(ari_score)):
+#                     if i == j:
+#                         where_matrix[i][j] = False
+#             print(where_matrix)
 
-            # # print the scores
-            # # print(f"For the stimulus combination {visGroup} degrees and {audioGroup} Hz:")
-            # # print(f"ARI score: {np.mean(ari_score)}")
-            # # print(f"NMI score: {np.mean(nmi_score)}\n")
+#             # # print the scores
+#             # # print(f"For the stimulus combination {visGroup} degrees and {audioGroup} Hz:")
+#             # # print(f"ARI score: {np.mean(ari_score)}")
+#             # # print(f"NMI score: {np.mean(nmi_score)}\n")
 
-            # ari_mean = np.mean(ari_score, where=where_matrix)
-            # nmi_mean = np.mean(nmi_score, where=where_matrix)
+#             ari_mean = np.mean(ari_score, where=where_matrix)
+#             nmi_mean = np.mean(nmi_score, where=where_matrix)
 
+#             print(ari_mean)
+#             print(nmi_mean)
 
-            # if not math.isnan(ari_mean):
-            #     means_ari.append(ari_mean)
-            #     means_nmi.append(nmi_mean)
-
-
-# for session in clusterDF.session_ID.unique():
-#     means_ari = []
-#     means_nmi = []
-
-#     for t_bin in clusterDF.time_bin.unique():
-#         ses_clusterDF = clusterDF[(clusterDF["session_ID"] == session) & (clusterDF["time_bin"] == t_bin)]
-#         cluster_ser = ses_clusterDF["clusters"]
-
-#         # calculate comparison indices
-#         ari_score = calc_cluster_comparison(cluster_ser, adjusted_rand_score)
-#         nmi_score = calc_cluster_comparison(cluster_ser, normalized_mutual_info_score)
-
-#         where_matrix = np.full(ari_score.shape, True)
-#         for i in range(len(ari_score)):
-#             for j in range(len(ari_score)):
-#                 if i == j:
-#                     where_matrix[i][j] = False
-
-#         # print the scores
-#         # print(f"For session {session} with {t_bin}s time bins:")
-
-#         ari_mean = np.mean(ari_score, where=where_matrix)
-#         nmi_mean = np.mean(nmi_score, where=where_matrix)
-#         # print(f"ARI score: {ari_mean}")
-#         # print(f"NMI score: {nmi_mean}\n")
-
-#         if not math.isnan(ari_mean):
-#             means_ari.append(ari_mean)
-#             means_nmi.append(nmi_mean)
-
-#     print(f"Session {session}:")
-#     print(f"Mean ARI score: {np.mean(means_ari)}")
-#     print(f"Mean NMI score: {np.mean(means_nmi)}\n")
+#             if not math.isnan(ari_mean):
+#                 means_ari.append(ari_mean)
+#                 means_nmi.append(nmi_mean)
 
 
-# print(f"Mean ARI score: {np.mean(means_ari)}")
-# print(f"Mean NMI score: {np.mean(means_nmi)}")
+for session in clusterDF.session_ID.unique():
+    ses_neurons = spikeData[spikeData["session_ID"] == session]
+    neuron_series = ses_neurons["cell_ID"]
+    n = len(neuron_series)
+
+
+    for t_bin in clusterDF.time_Bin.unique():
+        ses_clusterDF = clusterDF[(clusterDF["session_ID"] == session) & (clusterDF["time_Bin"] == t_bin)]
+        # cluster_ser = ses_clusterDF["clusters"]
+        partitions = ses_clusterDF["MCM_Partition"]
+
+        clusterings = []
+
+        for stim_comb_partitions in partitions:
+            for partition in stim_comb_partitions:
+                clusters = np.zeros(n)
+
+                for community_index, community in enumerate(partition):
+                    if n <= 64:
+                        component = bin(community[1])[2:].zfill(n)
+                    else:
+                        comp1 = bin(community[1])[2:].zfill(64)
+                        comp2 = bin(community[2])[2:].zfill(n-64)
+                        component = comp1 + comp2
+
+                    for variable_index, belongs in enumerate(component):
+                        if belongs == '1':
+                            clusters[variable_index] = community_index
+                clusterings.append(clusters)
+
+        print(len(clusterings))
+
+         # calculate comparison indices
+        ari_score = calc_cluster_comparison(clusterings, adjusted_rand_score)
+        nmi_score = calc_cluster_comparison(clusterings, normalized_mutual_info_score)
+
+        where_matrix = np.full(ari_score.shape, True)
+        for i in range(len(ari_score)):
+            for j in range(len(ari_score)):
+                if i == j:
+                    where_matrix[i][j] = False
+
+        # print the scores
+        # print(f"For session {session} with {t_bin}s time bins:")
+
+        ari_mean = np.mean(ari_score, where=where_matrix)
+        nmi_mean = np.mean(nmi_score, where=where_matrix)
+        # print(f"ARI score: {ari_mean}")
+        # print(f"NMI score: {nmi_mean}\n")
+
+        if not math.isnan(ari_mean):
+            means_ari.append(ari_mean)
+            means_nmi.append(nmi_mean)
+
+    # print(f"Session {session}:")
+    # print(f"Mean ARI score: {np.mean(means_ari)}")
+    # print(f"Mean NMI score: {np.mean(means_nmi)}\n")
+
+
+print(f"Mean ARI score: {np.mean(means_ari)}")
+print(f"Mean NMI score: {np.mean(means_nmi)}")
 
 
 ########################################################################################################################################################################
@@ -294,6 +344,9 @@ time_bins = [5, 10, 15, 20, 25, 30]
 
 # within_count_series = pd.Series(0, index=clusterDF.index)
 # between_count_series = pd.Series(0, index=clusterDF.index)
+# V1_CG1_series = pd.Series(0, index=clusterDF.index)
+# V1_PPC_series = pd.Series(0, index=clusterDF.index)
+# PPC_CG1_series = pd.Series(0, index=clusterDF.index)
 
 # # Iterate through all stimulus combinations of all sessions
 # for _, session in sessionData.iterrows():
@@ -315,6 +368,9 @@ time_bins = [5, 10, 15, 20, 25, 30]
 
 #                 within_area_count = 0
 #                 between_area_count = 0
+#                 V1_CG1_count = 0
+#                 V1_PPC_count = 0
+#                 PPC_CG1_count = 0
 
 #                 # Get the partitions and check which neurons are grouped
 #                 # with others in the same or different brain area
@@ -332,14 +388,27 @@ time_bins = [5, 10, 15, 20, 25, 30]
 
 #                                 if area_i == area_j:
 #                                     within_area_count += 1
+#                                 elif ((area_i == "V1") and (area_j == "CG1")) or ((area_i == "CG1") and (area_j == "V1")):
+#                                     V1_CG1_count += 1
+#                                     between_area_count += 1
+#                                 elif ((area_i == "V1") and (area_j == "PPC")) or ((area_i == "PPC") and (area_j == "V1")):
+#                                     V1_PPC_count += 1
+#                                     between_area_count += 1
 #                                 else:
+#                                     PPC_CG1_count += 1
 #                                     between_area_count += 1
 
 #                 within_count_series[comb_index] = int(within_area_count/2)
 #                 between_count_series[comb_index] = int(between_area_count/2)
+#                 V1_CG1_series[comb_index] = int(V1_CG1_count/2)
+#                 V1_PPC_series[comb_index] = int(V1_PPC_count/2)
+#                 PPC_CG1_series[comb_index] = int(PPC_CG1_count/2)
 
 # clusterDF["within_area_count"] = within_count_series
 # clusterDF["between_area_count"] = between_count_series
+# clusterDF["V1_CG1_count"] = V1_CG1_series
+# clusterDF["V1_PPC_count"] = V1_PPC_series
+# clusterDF["PPC_CG1_count"] = PPC_CG1_series
 
 # clusterDF.to_pickle(f"{save_dir}/bc_clusters_area_counts.pkl")
 
@@ -352,6 +421,10 @@ time_bins = [5, 10, 15, 20, 25, 30]
 # for index, ses in zip(range(1, 5), sessionData["session_ID"]):
 #     within_fractions = []
 #     between_fractions = []
+#     V1_CG1_fractions = []
+#     V1_PPC_fractions = []
+#     PPC_CG1_fractions = []
+#     all_3_fractions = []
 
 #     # Count the porportion of between and within area connections for each time bin
 #     # in the session
@@ -359,27 +432,48 @@ time_bins = [5, 10, 15, 20, 25, 30]
 #         bin_clusterDF = clusterDF[(clusterDF["time_Bin"] == time_bin) & (clusterDF["session_ID"] == ses)]
 #         within_sum = np.sum(bin_clusterDF["within_area_count"])
 #         between_sum = np.sum(bin_clusterDF["between_area_count"])
+#         V1_CG1_sum = np.sum(bin_clusterDF["V1_CG1_count"])
+#         V1_PPC_sum = np.sum(bin_clusterDF["V1_PPC_count"])
+#         PPC_CG1_sum = np.sum(bin_clusterDF["PPC_CG1_count"])
 
 #         total_connections = within_sum + between_sum
 
 #         within_fractions.append((within_sum)/total_connections)
 #         between_fractions.append((between_sum)/total_connections)
+#         V1_CG1_fractions.append((V1_CG1_sum)/total_connections)
+#         V1_PPC_fractions.append((V1_PPC_sum)/total_connections)
+#         PPC_CG1_fractions.append((PPC_CG1_sum)/total_connections)
+#         all_3_fractions.append((between_sum - V1_CG1_sum - V1_PPC_sum - PPC_CG1_sum)/total_connections)
 
 #     # Save the results in a scatter plot
 #     plt.scatter(time_bins, within_fractions, c="blue")
 #     plt.scatter(time_bins, between_fractions, c="red")
+#     if not (np.sum(V1_CG1_fractions) == 0):
+#         plt.scatter(time_bins, V1_CG1_fractions, c="teal")
+#     plt.scatter(time_bins, V1_PPC_fractions, c="purple")
+#     if not (np.sum(V1_CG1_fractions) == 0):
+#         plt.scatter(time_bins, PPC_CG1_fractions, c ="orange")
+#     # plt.scatter(time_bins, all_3_fractions, c="black")
 
-#     plt.title(f"Proportion of connections that are within and between brain areas\nplotted against time bin size, for session {index} ({ses})")
+
+#     # plt.title(f"Proportion of connections that are within and between brain areas\nplotted against time bin size, for session {index} ({ses})")
+#     plt.title(f"Session {index}")
 #     plt.xlabel("Time bin (sec)")
+#     plt.xlim([3, 32])
 #     plt.ylabel("Proportion of total connections in MCM")
 #     plt.yticks(ticks=(np.array(range(5))/5))
 
-#     legend_patches = [mpatches.Patch(color=color, label=label) for color, label in zip(["blue", "red"], ["Within areas", "Between areas"])]
-#     plt.legend(handles=legend_patches, bbox_to_anchor=(1, 0.3), loc='best', title="Proportion of connections:")
-#     # plt.margins(x=1)
+#     # legend_colors = ["blue", "red", "teal", "purple", "orange"]
+#     # legend_labels = ["Within areas", "Between areas", "Between V1 and CG1", "Between V1 and PPC", "Between PPC and CG1"]
+#     # legend_patches = [mpatches.Patch(color=color, label=label) for color, label in zip(legend_colors, legend_labels)]
+#     # plt.legend(handles=legend_patches, bbox_to_anchor=(1.05, -0.15), loc='best', title="Proportion of connections:")
 
-#     plt.savefig(f"/Users/vojtamazur/Documents/Capstone_code/clustering_analysis/within-between_connections_{ses}.png")
-#     plt.clf()
+#     # plt.subplots_adjust(bottom=0.4)
+
+#     plt.show()
+
+#     # plt.savefig(f"/Users/vojtamazur/Documents/Capstone_code/clustering_analysis/within-between_connections_{ses}.png")
+#     # plt.clf()
 
 
 
@@ -388,13 +482,13 @@ time_bins = [5, 10, 15, 20, 25, 30]
 ############################# Creating LogE-LogE plots for the same stimulus types #########################################################################################################
 
 
-mcmDF = pd.read_pickle(f"{save_dir}/bc_20ms_2set_MCM_data.pkl")
+mcmDF = pd.read_pickle(f"{save_dir}/bc_30ms_2set_MCM_data.pkl")
 
-ses_ID = sessionData.loc[1, "session_ID"]
-# get the neurons from the session and their number
-ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
-neuron_series = ses_neurons["cell_ID"]
-n = len(neuron_series)
+# ses_ID = sessionData.loc[1, "session_ID"]
+# # get the neurons from the session and their number
+# ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
+# neuron_series = ses_neurons["cell_ID"]
+# n = len(neuron_series)
 
 # ses_mcmDF = mcmDF[mcmDF["session_ID"] == ses_ID]
 
@@ -445,47 +539,271 @@ n = len(neuron_series)
 
 ########################################################################################################################################################################
 
-############################# Creating LogE-LogE plots for the same stimulus types #########################################################################################################
+############################# Creating histograms of ARI and NMI scores #########################################################################################################
 
-ari_scores = []
-nmi_scores = []
+# ari_scores = []
+# nmi_scores = []
 
-for ses_ID in sessionData["session_ID"]:
-    ses_mcmDF = mcmDF[mcmDF["session_ID"] == ses_ID]
+# full_ses_clusterDF = pd.read_pickle(f"{save_dir}/bc_clusters_full_ses.pkl")
 
-    for visGroup in ses_mcmDF.visGroup.unique():
-        for audioGroup in ses_mcmDF.audioGroup.unique():
-            stim_mcmDF1 = ses_mcmDF[((ses_mcmDF["visGroup"] == visGroup) & (ses_mcmDF["audioGroup"] == audioGroup)) & (mcmDF["trial_set"] == 1)]
-            stim_mcmDF2 = ses_mcmDF[((ses_mcmDF["visGroup"] == visGroup) & (ses_mcmDF["audioGroup"] == audioGroup)) & (mcmDF["trial_set"] == 2)]
+# for ses_ID in sessionData["session_ID"]:
+#     ses_mcmDF = mcmDF[mcmDF["session_ID"] == ses_ID]
+#     ses_clusterDF = full_ses_clusterDF[(full_ses_clusterDF["session_ID"] == ses_ID) & (full_ses_clusterDF["time_Bin"] == 20)]
 
-            if not stim_mcmDF1.empty:
-                linkage_m1 = np.array(stim_mcmDF1["linkage_matrix"])[0]
-                linkage_m2 = np.array(stim_mcmDF2["linkage_matrix"])[0]
+#     if ses_ID == "20122018081524":
+#         neuron_thresh = 42
+#         n = 86
+#     if ses_ID == "20122018081421":
+#         neuron_thresh = 33
+#         n = 68
+#     if ses_ID == "20122018081320":
+#         neuron_thresh = 28
+#         n = 37
+#     if ses_ID == "20122018081628":
+#         neuron_thresh = 18
+#         n = 31
 
-                clusters1 = fcluster(linkage_m1, 0.7*max(linkage_m1[:, 2]), criterion="distance")
-                clusters2 = fcluster(linkage_m2, 0.7*max(linkage_m2[:, 2]), criterion="distance")
+#     reordered_series = ses_clusterDF["reordered_Series"].item()
 
-                ari_score = adjusted_rand_score(clusters1, clusters2)
-                nmi_score = normalized_mutual_info_score(clusters1, clusters2)
+#     # Get the neurons from the session and their ID number
+#     ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
+#     neuron_arr = np.array(ses_neurons["cell_ID"])
 
-                ari_scores.append(ari_score)
-                nmi_scores.append(nmi_score)
+#     # Map original neuron IDs to their indices
+#     neuron_index_map = {neuron_id: idx for idx, neuron_id in enumerate(neuron_arr)}
 
-plt.rcParams["figure.figsize"] = [6,3]
-plt.rcParams["figure.autolayout"] = True
+#     # Find the indices in the original matrix that correspond to the reordered neurons
+#     reordered_indices = [neuron_index_map[neuron] for neuron in reordered_series]
+#     relevant_indices = reordered_indices[:neuron_thresh]
 
-fig, (ax1, ax2) = plt.subplots(1, 2)
+#     for visGroup in ses_mcmDF.visGroup.unique():
+#         for audioGroup in ses_mcmDF.audioGroup.unique():
+#             stim_mcmDF1 = ses_mcmDF[((ses_mcmDF["visGroup"] == visGroup) & (ses_mcmDF["audioGroup"] == audioGroup)) & (mcmDF["trial_set"] == 1)]
+#             stim_mcmDF2 = ses_mcmDF[((ses_mcmDF["visGroup"] == visGroup) & (ses_mcmDF["audioGroup"] == audioGroup)) & (mcmDF["trial_set"] == 2)]
 
-hist_bins = np.array(range(20))/20
+#             if not stim_mcmDF1.empty:
+#                 # linkage_m1 = np.array(stim_mcmDF1["linkage_matrix"])[0]
+#                 # linkage_m2 = np.array(stim_mcmDF2["linkage_matrix"])[0]
+#                 partitions1 = stim_mcmDF1["MCM_partition"].item()
+#                 partitions2 = stim_mcmDF2["MCM_partition"].item()
 
-ax1.hist(ari_scores, bins=hist_bins)
-ax1.set_title("ARI scores")
-ax1.set_xlim([0, 1])
-ax1.set_ylim([0, 5])
+#                 clusterings = []
 
-ax2.hist(nmi_scores, bins=hist_bins)
-ax2.set_title("NMI scores")
-ax2.set_xlim([0, 1])
-ax2.set_ylim([0, 5])
+#                 for partition in partitions1:
+#                     clusters = np.zeros(n)
 
-plt.savefig("/Users/vojtamazur/Documents/Capstone_code/clustering_analysis/ARI-NMI_score_histograms_20ms.png")
+#                     for community_index, community in enumerate(partition):
+#                         if n <= 64:
+#                             component = bin(community[1])[2:].zfill(n)
+#                         else:
+#                             comp1 = bin(community[1])[2:].zfill(64)
+#                             comp2 = bin(community[2])[2:].zfill(n-64)
+#                             component = comp1 + comp2
+
+#                         for variable_index, belongs in enumerate(component):
+#                             if belongs == '1':
+#                                 clusters[variable_index] = community_index
+#                     clusterings.append(clusters)
+
+#                 for partition in partitions2:
+#                     clusters = np.zeros(n)
+
+#                     for community_index, community in enumerate(partition):
+#                         if n <= 64:
+#                             component = bin(community[1])[2:].zfill(n)
+#                         else:
+#                             comp1 = bin(community[1])[2:].zfill(64)
+#                             comp2 = bin(community[2])[2:].zfill(n-64)
+#                             component = comp1 + comp2
+
+#                         for variable_index, belongs in enumerate(component):
+#                             if belongs == '1':
+#                                 clusters[variable_index] = community_index
+#                     clusterings.append(clusters)
+
+#                 ari_score_m = calc_cluster_comparison(clusterings, adjusted_rand_score)
+#                 nmi_score_m = calc_cluster_comparison(clusterings, normalized_mutual_info_score)
+
+#                 for i in range(len(ari_score_m)):
+#                     for j in range(len(ari_score_m)):
+#                         if i != j:
+#                             ari_scores.append(ari_score_m[i][j])
+#                             nmi_scores.append(nmi_score_m[i][j])
+
+#                 # clusters1 = fcluster(linkage_m1, 0.7*max(linkage_m1[:, 2]), criterion="distance")
+#                 # clusters2 = fcluster(linkage_m2, 0.7*max(linkage_m2[:, 2]), criterion="distance")
+
+#                 # good_clusters1 = [neuron for index, neuron in enumerate(clusters1) if index in relevant_indices]
+#                 # good_clusters2 = [neuron for index, neuron in enumerate(clusters2) if index in relevant_indices]
+
+#                 # ari_score = adjusted_rand_score(good_clusters1, good_clusters2)
+#                 # nmi_score = normalized_mutual_info_score(good_clusters1, good_clusters2)
+#                 # # ari_score = adjusted_rand_score(clusters1, clusters2)
+#                 # # nmi_score = normalized_mutual_info_score(clusters1, clusters2)
+
+#                 # ari_scores.append(ari_score)
+#                 # nmi_scores.append(nmi_score)
+
+
+# plt.rcParams["figure.figsize"] = [6,3]
+# plt.rcParams["figure.autolayout"] = True
+
+# fig, (ax1, ax2) = plt.subplots(1, 2)
+
+# hist_bins = np.array(range(40))/40
+
+# ax1.hist(ari_scores, bins=hist_bins)
+# ax1.set_title("ARI scores")
+# # ax1.set_xlim([0, 1])
+# # ax1.set_ylim([0, 5])
+
+# ax2.hist(nmi_scores, bins=hist_bins)
+# ax2.set_title("NMI scores")
+# # ax2.set_xlim([0, 1])
+# # ax2.set_ylim([0, 5])
+
+
+# plt.savefig("/Users/vojtamazur/Documents/Capstone_code/clustering_analysis/score_hists_good_clusters_20ms.png")
+
+# print(np.mean(ari_scores))
+# print(np.mean(nmi_scores))
+
+
+
+
+
+
+
+
+
+
+
+# ########################################################################################################################################################################
+
+# ############################# Comparing the sizes of clusters with connections within brain areas and between brain areas ###################################################
+
+# time_bins = [5, 10, 15, 20, 25, 30]
+
+# clusterDF = pd.read_pickle(f"{save_dir}/bc_clusters_area_counts.pkl")
+
+# mean_sizes_within = []
+# mean_sizes_between = []
+
+# for index, ses_ID in sessionData["session_ID"].items():
+#     ses_clusterDF = clusterDF[clusterDF["session_ID"] == ses_ID]
+
+#     ses_neurons = spikeData[spikeData["session_ID"] == ses_ID]
+
+#     neuron_arr = np.array(ses_neurons["cell_ID"])
+#     n = len(neuron_arr)
+
+#     for time_bin in time_bins:
+#         t_clusterDF = ses_clusterDF[ses_clusterDF["time_Bin"] == time_bin]
+
+#         # linkage_matrices = t_clusterDF["linkage_Matrix"].to_list()
+#         # cluster_list = [fcluster(x, 0.7*max(x[:, 2]), criterion="distance") for x in linkage_matrices]
+
+#         sizes_within = []
+#         sizes_between = []
+
+#         # for clustering in cluster_list:
+#         #     for clust in np.unique(clustering):
+#         #         var_indeces = [index for index, value in enumerate(clustering) if value == clust]
+#         #         clust_size = len(var_indeces)
+#         #         print(len(var_indeces))
+
+#         #         # if len(var_indeces) < (0.2 * n):
+#         #         neuron_ids = neuron_arr[var_indeces]
+#         #         area_li = []
+
+#         #         for neuron in neuron_ids:
+#         #             neuron_data = spikeData[spikeData["cell_ID"] == neuron]
+#         #             area_li.append(neuron_data["area"].item())
+
+#         #         same_area = all(x == area_li[0] for x in area_li)
+#         #         if same_area:
+#         #             sizes_within.append(clust_size)
+#         #         else:
+#         #             sizes_between.append(clust_size)
+
+#         MCM_partitions = t_clusterDF["MCM_Partition"]
+#         for comb in MCM_partitions:
+#             for indx, sample in enumerate(comb):
+#                 communities = []
+
+#                 for array in sample:
+#                     if n <= 64:
+#                         component = bin(array[1])[2:].zfill(n)
+#                     else:
+#                         comp1 = bin(array[1])[2:].zfill(64)
+#                         comp2 = bin(array[2])[2:].zfill(n-64)
+#                         component = comp1 + comp2
+
+#                     communities.append(component)
+
+#                 for community in communities:
+#                     var_indeces = [index for index, value in enumerate(community) if value == "1"]
+
+#                     clust_size = len(var_indeces)
+#                     if clust_size > 1:
+#                         neuron_ids = neuron_arr[var_indeces]
+#                         area_li = []
+
+#                         for neuron in neuron_ids:
+#                             neuron_data = spikeData[spikeData["cell_ID"] == neuron]
+#                             area_li.append(neuron_data["area"].item())
+
+#                         if all(x == area_li[0] for x in area_li):
+#                             sizes_within.append(clust_size)
+#                         else:
+#                             sizes_between.append(clust_size)
+
+#                 print(f"Sample {indx} done")
+
+#         mean_sizes_within.append([np.mean(sizes_within), index])
+#         mean_sizes_between.append([np.mean(sizes_between), index])
+
+# # PLot the results in a figure
+# fig, ax = plt.subplots()
+
+# plt.scatter(time_bins, [x[0] for x in mean_sizes_within if x[1] == 0], c="blue", marker="o")
+# plt.scatter(time_bins, [x[0] for x in mean_sizes_within if x[1] == 1], c="blue", marker="x")
+# plt.scatter(time_bins, [x[0] for x in mean_sizes_within if x[1] == 2], c="blue", marker="*")
+# plt.scatter(time_bins, [x[0] for x in mean_sizes_within if x[1] == 3], c="blue", marker="v")
+# plt.scatter(time_bins, [x[0] for x in mean_sizes_between if x[1] == 0], c="red", marker="o")
+# plt.scatter(time_bins, [x[0] for x in mean_sizes_between if x[1] == 1], c="red", marker="x")
+# plt.scatter(time_bins, [x[0] for x in mean_sizes_between if x[1] == 2], c="red", marker="*")
+# plt.scatter(time_bins, [x[0] for x in mean_sizes_between if x[1] == 3], c="red", marker="v")
+# # plt.scatter(time_bins, mean_sizes_between, c="red")
+# # plt.title(f"The size of components plotted against time bins for session: {ses_ID}")
+
+# # # Create custom legends for markers and connections
+# # sessions = ["Session 1", "Session 2", "Session 3", "Session 4"]
+# # labels = ["Within areas", "Between areas"]
+# # markers = ["o", "X", "*", "v"]
+# # colors = ["blue", "red"]
+
+# # # Create custom legend for markers
+# # marker_legend = [Line2D([0], [0], marker=m, color='w', label=sessions[i],
+# #                         markerfacecolor='black', markersize=10) for i, m in enumerate(markers)]
+# # # Create custom legend for colors
+# # color_legend = [Line2D([0], [0], marker='o', color=colors[j], label=labels[j],
+# #                        markerfacecolor=colors[j], markersize=10) for j in range(len(colors))]
+
+# # legend1 = ax.legend(handles=marker_legend, title="Sessions", loc='upper right', bbox_to_anchor=(1,-0.1))
+# # legend2 = ax.legend(handles=color_legend, title="Connections", loc='upper left', bbox_to_anchor=(0,-0.2))
+# # ax.add_artist(legend1)
+
+# plt.xlabel("Time bin (ms)")
+# plt.ylabel("Average cluster size")
+
+# # # plt.legend(handles=legend_patches, bbox_to_anchor=(1, -0.1), loc='best', title="Components with connections:")
+# # plt.subplots_adjust(bottom=0.35)
+
+# plt.savefig(f"/Users/vojtamazur/Documents/Capstone_code/clustering_analysis/clust_size/bet-with_all_ses.png")
+
+
+
+
+
+

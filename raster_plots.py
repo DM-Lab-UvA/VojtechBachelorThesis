@@ -54,7 +54,7 @@ def raster_plot_superimposed(trial_df, spike_df, session_ID, interval, trial_sel
         total_spikes += neuron_arr
 
     # Set up the plot
-    plt.figure(figsize=(12, 10))
+    plt.figure(figsize=(10, 6))
 
     # Generate the plot of superimposed spiking data
     plt.imshow(total_spikes, aspect='auto', cmap='viridis', interpolation='nearest')
@@ -89,9 +89,9 @@ def raster_plot_superimposed(trial_df, spike_df, session_ID, interval, trial_sel
             tick_label.set_color(label_colors[2])
 
     # Add an additional legend to explain the different brain areas
-    area_labels = ["V1", "AC1", "PPC"]
+    area_labels = ["V1", "CG1", "PPC"]
     legend_patches = [mpatches.Patch(color=color, label=label) for color, label in zip(label_colors, area_labels)]
-    plt.legend(handles=legend_patches, bbox_to_anchor=(1.05, 1), loc='best', title="Brain Area")
+    plt.legend(handles=legend_patches, bbox_to_anchor=(1.4, 1), loc='best', title="Brain Area")
 
     # Add a label for the stimulus change:
     stim_change = 2000000/interval
